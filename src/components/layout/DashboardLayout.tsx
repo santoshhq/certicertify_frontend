@@ -16,7 +16,7 @@ import { Logo } from "../Logo";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/dashboard/add-students", label: "Add Students Data", icon: UploadCloud },
   { to: "/dashboard/previous-data", label: "Previous data Year Wise", icon: CalendarClock },
   { to: "/dashboard/change-password", label: "Change Password", icon: KeyRound },
@@ -26,11 +26,11 @@ const NAV_ITEMS = [
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
-          end={end}
+          end
           onClick={onNavigate}
           className={({ isActive }) =>
             clsx(

@@ -8,6 +8,7 @@ import type {
   Student,
   StudentStats,
   StudentUploadResponse,
+  RegisterPayload,
   SuperAdminInstitutionUpdatePayload,
   SuperAdminRegisterPayload,
 } from "../types";
@@ -64,6 +65,11 @@ export async function getAllInstitutionsAsSuperAdmin() {
   const { data } = await api.get<Institution[]>(
     "/superadmin/superadmin-get-all-institutes"
   );
+  return data;
+}
+
+export async function addInstitutionAsSuperAdmin(payload: RegisterPayload) {
+  const { data } = await api.post<Institution>("/superadmin/add-instution", payload);
   return data;
 }
 

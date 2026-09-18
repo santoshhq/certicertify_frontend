@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   CalendarClock,
   UploadCloud,
-  BarChart3,
   LogOut,
   Menu,
   X,
@@ -18,22 +17,21 @@ import { Logo } from "../Logo";
 import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 
 const NAV_ITEMS = [
-  { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/superadmin/institutions", label: "Institutions", icon: Building2 },
   { to: "/superadmin/admins", label: "Admins", icon: ShieldCheck },
   { to: "/superadmin/students", label: "Previous data Year Wise", icon: CalendarClock },
   { to: "/superadmin/students/upload", label: "Upload Students", icon: UploadCloud },
-  { to: "/superadmin/students/stats", label: "Student Stats", icon: BarChart3 },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
-          end={end}
+          end
           onClick={onNavigate}
           className={({ isActive }) =>
             clsx(

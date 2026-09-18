@@ -54,7 +54,7 @@ const INCLUDED = [
 
 export default function VerifyCertificatePage() {
   const [rollNo, setRollNo] = useState("");
-  const [student, setStudent] = useState<Student | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
   const [searched, setSearched] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [notFound, setNotFound] = useState(false);
@@ -73,9 +73,9 @@ export default function VerifyCertificatePage() {
     setLastQuery(query);
     try {
       const data = await getStudent(query);
-      setStudent(data);
+      setStudents(Array.isArray(data) ? data : [data]);
     } catch (err) {
-      setStudent(null);
+      setStudents([]);
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
         setNotFound(true);
@@ -211,8 +211,34 @@ export default function VerifyCertificatePage() {
           </div>
         )}
 
-        {showResult && student && (
-          <article className="overflow-hidden rounded-2xl border border-line bg-white">
+        {showResult && students.length > 0 && (
+          <div className="space-y-6">
+            {students.length > 1 && (
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-display text-xl font-bold text-pine-950">
+                    {students.length} matching certificates
+                  </p>
+                  <p className="mt-1 text-sm text-ink-400">
+                    Select the verified record you want to inspect.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-mint-100 px-3 py-1 text-xs font-semibold text-pine-800">
+                  {students.length} results
+                </span>
+              </div>
+            )}
+
+            {students.map((student, index) => {
+              const certificateId = student.certificate_id || student.roll_no_certificate_no || "";
+
+              return (
+                <article key={`${student.student_id}-${certificateId}`} className="overflow-hidden rounded-2xl border border-line bg-white">
+                  {students.length > 1 && (
+                    <div className="border-b border-line bg-paper px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-ink-400 sm:px-8">
+                      Result {index + 1}
+                    </div>
+                  )}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-mint-50 px-5 py-4 sm:px-8">
               <div className="flex items-center gap-3">
                 <span className="relative shrink-0">
@@ -230,7 +256,9 @@ export default function VerifyCertificatePage() {
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-ink-400">Checked just now</p>
+              <p className="text-xs text-ink-400">
+                Certificate ID: <span className="font-mono font-semibold text-ink-700">{certificateId}</span>
+              </p>
             </div>
 
             <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
@@ -242,6 +270,7 @@ export default function VerifyCertificatePage() {
 
                 <dl className="mt-8 grid gap-x-8 gap-y-6 border-t border-line pt-6 sm:grid-cols-2">
                   <Detail label="Institution" value={student.institution_name} wide />
+                  <Detail label="Certificate ID" value={certificateId} mono />
                   <Detail label="Roll / certificate number" value={student.roll_no_certificate_no} mono />
                   <Detail label="Batch year" value={student.batch_year} />
                   <Detail label="Course" value={student.course_or_Acadamic} wide />
@@ -287,7 +316,10 @@ export default function VerifyCertificatePage() {
                 )}
               </div>
             </div>
-          </article>
+                </article>
+              );
+            })}
+          </div>
         )}
       </main>
 

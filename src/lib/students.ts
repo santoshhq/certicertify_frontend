@@ -54,7 +54,7 @@ export async function getStudentStats(institutionId: string) {
 }
 
 export async function getStudent(rollNoCertificateNo: string) {
-  const { data } = await api.get<Student>(
+  const { data } = await api.get<Student | Student[]>(
     `/students/${encodeURIComponent(rollNoCertificateNo)}`
   );
   return data;

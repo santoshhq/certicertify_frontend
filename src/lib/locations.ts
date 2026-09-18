@@ -130,6 +130,19 @@ export const COUNTRY_STATES: Record<string, readonly string[]> = {
 
 export const COUNTRIES = Object.keys(COUNTRY_STATES);
 
+export const COUNTRY_DIAL_CODES: Record<string, string> = {
+  India: "+91",
+  "United States": "+1",
+  "United Kingdom": "+44",
+  Canada: "+1",
+  Australia: "+61",
+  "United Arab Emirates": "+971",
+};
+
 export function statesFor(country: string): readonly string[] {
   return COUNTRY_STATES[country] ?? [];
+}
+
+export function dialCodeFor(country: string): string {
+  return COUNTRY_DIAL_CODES[country] ?? "+--";
 }

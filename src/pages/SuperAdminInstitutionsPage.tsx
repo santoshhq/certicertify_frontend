@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Search, Pencil, Trash2, X } from "lucide-react";
+import { Search, Pencil, Trash2, X, Plus } from "lucide-react";
 import {
   getAllInstitutionsAsSuperAdmin,
+  addInstitutionAsSuperAdmin,
   updateInstitutionAsSuperAdmin,
   deleteInstitutionAsSuperAdmin,
 } from "../lib/superadmin";
@@ -11,11 +12,12 @@ import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
+import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import { SelectField } from "../components/ui/SelectField";
 import { VerifiedBadge } from "../components/ui/Badge";
-import { COUNTRIES, statesFor } from "../lib/locations";
-import type { Institution, SuperAdminInstitutionUpdatePayload } from "../types";
+import { COUNTRIES, dialCodeFor, statesFor } from "../lib/locations";
+import type { Institution, RegisterPayload, SuperAdminInstitutionUpdatePayload } from "../types";
 
 type EditForm = {
   name: string;
@@ -27,6 +29,18 @@ type EditForm = {
   country: string;
   mobile_no: string;
   password: string;
+};
+
+const emptyAddForm: RegisterPayload = {
+  name: "",
+  email_id: "",
+  institution_name: "",
+  postal_code: "",
+  city: "",
+  state: "",
+  country: "",
+  mobile_no: "",
+  password: "",
 };
 
 function toEditForm(institution: Institution): EditForm {
@@ -53,6 +67,11 @@ export default function SuperAdminInstitutionsPage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState<RegisterPayload>(emptyAddForm);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -103,6 +122,53 @@ export default function SuperAdminInstitutionsPage() {
 
   function updateCountry(country: string) {
     setEditForm((f) => (f ? { ...f, country, state: "" } : f));
+  }
+
+  function updateAddField<K extends keyof RegisterPayload>(key: K, value: string) {
+    setAddForm((form) => ({ ...form, [key]: value }));
+  }
+
+  function updateAddCountry(country: string) {
+    setAddForm((form) => ({ ...form, country, state: "" }));
+  }
+
+  function closeAdd() {
+    if (adding) return;
+    setAddOpen(false);
+    setAddError(null);
+    setAddForm(emptyAddForm);
+  }
+
+  async function addInstitution(e: FormEvent) {
+    e.preventDefault();
+    setAddError(null);
+    if (addForm.password.length < 8) {
+      setAddError("Password must be at least 8 characters.");
+      return;
+    }
+    if (addForm.mobile_no && addForm.mobile_no.length !== 10) {
+      setAddError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
+    setAdding(true);
+    try {
+      const created = await addInstitutionAsSuperAdmin({
+        ...addForm,
+        postal_code: addForm.postal_code || null,
+        state: addForm.state || null,
+        mobile_no: addForm.mobile_no
+          ? `${dialCodeFor(addForm.country)}${addForm.mobile_no}`
+          : null,
+      });
+      setInstitutions((prev) => [{ ...created, otp_verified: true }, ...prev]);
+      setAddOpen(false);
+      setAddError(null);
+      setAddForm(emptyAddForm);
+    } catch (err) {
+      setAddError(extractErrorMessage(err, "Couldn't add institution."));
+    } finally {
+      setAdding(false);
+    }
   }
 
   async function saveEdit(institution: Institution) {
@@ -161,9 +227,52 @@ export default function SuperAdminInstitutionsPage() {
       <h1 className="mt-2 font-display text-3xl font-bold text-pine-950">
         Institutions
       </h1>
-      <p className="mt-2 text-sm text-ink-400">
-        Edit contact details or remove an institution from the registry.
-      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-ink-400">
+          Edit contact details or remove an institution from the registry.
+        </p>
+        <Button type="button" onClick={() => setAddOpen(true)}>
+          <Plus size={16} /> Add institution
+        </Button>
+      </div>
+
+      {addOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-pine-950/45 px-4 py-8">
+          <div className="w-full max-w-3xl rounded-xl border border-line bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-wider text-rose-600">
+                  Super admin action
+                </p>
+                <h2 className="mt-1 font-display text-2xl font-bold text-pine-950">
+                  Add institution
+                </h2>
+                <p className="mt-1 text-sm text-ink-400">
+                  This institution is created directly without email OTP verification.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeAdd}
+                disabled={adding}
+                aria-label="Close add institution form"
+                className="text-ink-400 hover:text-pine-900 disabled:opacity-50"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {addError && <div className="mt-5"><Alert tone="error">{addError}</Alert></div>}
+            <AddInstitutionForm
+              form={addForm}
+              adding={adding}
+              onChange={updateAddField}
+              onChangeCountry={updateAddCountry}
+              onCancel={closeAdd}
+              onSubmit={addInstitution}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mt-6">
         <label className="relative inline-block">
@@ -304,6 +413,55 @@ export default function SuperAdminInstitutionsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function AddInstitutionForm({
+  form,
+  adding,
+  onChange,
+  onChangeCountry,
+  onCancel,
+  onSubmit,
+}: {
+  form: RegisterPayload;
+  adding: boolean;
+  onChange: <K extends keyof RegisterPayload>(key: K, value: string) => void;
+  onChangeCountry: (country: string) => void;
+  onCancel: () => void;
+  onSubmit: (e: FormEvent) => void;
+}) {
+  const states = statesFor(form.country);
+  return (
+    <form onSubmit={onSubmit} className="mt-6 flex max-h-[calc(100vh-220px)] flex-col gap-4 overflow-y-auto pr-1">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Institution name" name="institution_name" required value={form.institution_name} onChange={(e) => onChange("institution_name", e.target.value)} />
+        <Field label="Contact name" name="name" required value={form.name} onChange={(e) => onChange("name", e.target.value)} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Email address" type="email" name="email_id" required value={form.email_id} onChange={(e) => onChange("email_id", e.target.value)} />
+        <PhoneField
+          label="Mobile number"
+          name="mobile_no"
+          country={form.country}
+          value={form.mobile_no ?? ""}
+          onChange={(value) => onChange("mobile_no", value)}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField label="Country" name="country" required placeholder="Select country" options={COUNTRIES} value={form.country} onChange={(e) => onChangeCountry(e.target.value)} />
+        <SelectField label="State" name="state" placeholder={form.country ? "Select state" : "Select country first"} options={states} disabled={!form.country} value={form.state ?? ""} onChange={(e) => onChange("state", e.target.value)} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="City" name="city" required value={form.city} onChange={(e) => onChange("city", e.target.value)} />
+        <Field label="Postal code" name="postal_code" value={form.postal_code ?? ""} onChange={(e) => onChange("postal_code", e.target.value)} />
+      </div>
+      <PasswordField label="Password" name="password" autoComplete="new-password" hint="Minimum 8 characters" required value={form.password} onChange={(e) => onChange("password", e.target.value)} />
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={adding}>Cancel</Button>
+        <Button type="submit" loading={adding}>Add institution</Button>
+      </div>
+    </form>
   );
 }
 

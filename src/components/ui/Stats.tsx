@@ -19,12 +19,14 @@ export function StatTile({
   value: number | null;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-white p-5">
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_8px_24px_rgba(4,51,46,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(4,51,46,0.08)]">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-ink-400">{label}</p>
-        <Icon size={16} className="text-pine-700" strokeWidth={1.75} />
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-400">{label}</p>
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-mint-100">
+          <Icon size={16} className="text-pine-700" strokeWidth={1.75} />
+        </span>
       </div>
-      <p className="mt-2 text-3xl font-semibold text-pine-950">
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-pine-950">
         {value === null ? (
           <span className="inline-block h-8 w-16 animate-pulse rounded bg-mint-100" />
         ) : (
@@ -72,8 +74,11 @@ export function BreakdownCard({
   const max = Math.max(1, ...rows.map((r) => r.count));
 
   return (
-    <div className="rounded-xl border border-line bg-white p-5">
-      <p className="text-sm font-medium text-ink-900">{title}</p>
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_8px_24px_rgba(4,51,46,0.05)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-pine-950">{title}</p>
+        <span className="h-1.5 w-8 rounded-full bg-pine-600" aria-hidden />
+      </div>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-ink-400">No data yet.</p>
       ) : (

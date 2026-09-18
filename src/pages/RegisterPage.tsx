@@ -3,13 +3,14 @@ import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthLayout } from "../components/layout/AuthLayout";
 import { Field } from "../components/ui/Field";
+import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import { SelectField } from "../components/ui/SelectField";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
 import { registerInstitution } from "../lib/institutions";
 import { extractErrorMessage } from "../lib/api";
-import { COUNTRIES, statesFor } from "../lib/locations";
+import { COUNTRIES, dialCodeFor, statesFor } from "../lib/locations";
 import type { RegisterPayload } from "../types";
 
 const emptyForm: RegisterPayload = {
@@ -54,6 +55,10 @@ export default function RegisterPage() {
       setError("Passwords don't match.");
       return;
     }
+    if (form.mobile_no && form.mobile_no.length !== 10) {
+      setError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -61,7 +66,7 @@ export default function RegisterPage() {
         ...form,
         postal_code: form.postal_code || null,
         state: form.state || null,
-        mobile_no: form.mobile_no || null,
+        mobile_no: form.mobile_no ? `${dialCodeFor(form.country)}${form.mobile_no}` : null,
       });
       navigate("/verify-otp", { state: { email: form.email_id }, replace: true });
     } catch (err) {
@@ -111,11 +116,12 @@ export default function RegisterPage() {
           value={form.email_id}
           onChange={(e) => update("email_id", e.target.value)}
         />
-        <Field
+        <PhoneField
           label="Mobile number"
           name="mobile_no"
+          country={form.country}
           value={form.mobile_no ?? ""}
-          onChange={(e) => update("mobile_no", e.target.value)}
+          onChange={(value) => update("mobile_no", value)}
         />
         <div className="grid grid-cols-2 gap-4">
           <SelectField

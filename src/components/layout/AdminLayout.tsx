@@ -7,7 +7,6 @@ import {
   Building2,
   CalendarClock,
   UploadCloud,
-  BarChart3,
   LogOut,
   Menu,
   X,
@@ -17,21 +16,20 @@ import { Logo } from "../Logo";
 import { useAdminAuth } from "../../context/AdminAuthContext";
 
 const NAV_ITEMS = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/institutions", label: "Institutions", icon: Building2 },
   { to: "/admin/students", label: "Previous data Year Wise", icon: CalendarClock },
   { to: "/admin/students/upload", label: "Upload Students", icon: UploadCloud },
-  { to: "/admin/students/stats", label: "Student Stats", icon: BarChart3 },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
-          end={end}
+          end
           onClick={onNavigate}
           className={({ isActive }) =>
             clsx(

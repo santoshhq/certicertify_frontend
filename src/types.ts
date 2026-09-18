@@ -15,6 +15,7 @@ export interface Student {
   student_id: string;
   institution_id: string;
   institution_name: string;
+  certificate_id?: string;
   roll_no_certificate_no: string;
   student_name: string;
   surname_lastName: string;
