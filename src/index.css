@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* CertiCertify brand palette, sampled directly from the logo mark */
+  --color-pine-950: #04332e;
+  --color-pine-900: #075e55;
+  --color-pine-800: #0a6f63;
+  --color-pine-700: #0d8577;
+  --color-pine-600: #12a28f;
+  --color-pine-500: #24d467;
+  --color-sage-300: #9bd9b9;
+  --color-sage-200: #c6eeda;
+  --color-mint-100: #e3fbf0;
+  --color-mint-50: #f2fdf7;
+  --color-paper: #fbfdfc;
+  --color-ink-900: #10221d;
+  --color-ink-700: #3e4f4a;
+  --color-ink-400: #71827d;
+  --color-line: #dcede6;
+  --color-amber-600: #ff740f;
+  --color-amber-100: #ffe9d6;
+  --color-rose-600: #dc2626;
+  --color-rose-100: #fee2e2;
+
+  --font-display: "Poppins", system-ui, "Segoe UI", sans-serif;
+  --font-sans: "Poppins", system-ui, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100svh;
+    background: var(--color-paper);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-pine-950);
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-pine-600);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .ledger-row {
+    border-bottom: 1px solid var(--color-line);
+  }
+  .seal-ring {
+    box-shadow:
+      0 0 0 1px var(--color-sage-300),
+      0 0 0 4px var(--color-mint-100);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
