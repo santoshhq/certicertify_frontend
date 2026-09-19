@@ -7,6 +7,7 @@ import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
+import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import type { Admin, AdminCreatePayload, AdminUpdatePayload } from "../types";
 
@@ -37,11 +38,16 @@ function generateLoginId() {
   return id;
 }
 
+function localMobileNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
+}
+
 function toEditForm(admin: Admin): EditForm {
   return {
     admin_name: admin.admin_name,
     email: admin.email,
-    mobilenumber: admin.mobilenumber,
+    mobilenumber: localMobileNumber(admin.mobilenumber),
     admin_userId: admin.admin_loginId,
     password: "",
   };
@@ -99,10 +105,17 @@ export default function SuperAdminAdminsPage() {
       setCreateError("Password must be at least 8 characters.");
       return;
     }
+    if (createForm.mobilenumber.length !== 10) {
+      setCreateError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
 
     setCreating(true);
     try {
-      await createAdmin(createForm);
+      await createAdmin({
+        ...createForm,
+        mobilenumber: `+91${createForm.mobilenumber}`,
+      });
       setCreateSuccess("Admin created. Login details were emailed to them.");
       setCreateForm(emptyCreateForm);
       setCreateOpen(false);
@@ -149,9 +162,17 @@ export default function SuperAdminAdminsPage() {
       setRowError("Login ID must contain exactly 8 characters.");
       return;
     }
+    if (payload.mobilenumber && editForm.mobilenumber.length !== 10) {
+      setRowError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
     if (payload.password && payload.password.length < 8) {
       setRowError("Password must be at least 8 characters.");
       return;
+    }
+
+    if (payload.mobilenumber) {
+      payload.mobilenumber = `+91${editForm.mobilenumber}`;
     }
 
     setSaving(true);
@@ -225,12 +246,13 @@ export default function SuperAdminAdminsPage() {
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field
+            <PhoneField
               label="Mobile number"
               name="mobilenumber"
+              country="India"
               required
               value={createForm.mobilenumber}
-              onChange={(e) => updateCreateField("mobilenumber", e.target.value)}
+              onChange={(value) => updateCreateField("mobilenumber", value)}
             />
             <Field
               label="Login ID"
@@ -373,12 +395,13 @@ export default function SuperAdminAdminsPage() {
                                   />
                                 </div>
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                  <Field
+                                  <PhoneField
                                     label="Mobile number"
                                     name="mobilenumber"
+                                    country="India"
                                     required
                                     value={editForm.mobilenumber}
-                                    onChange={(e) => updateEditField("mobilenumber", e.target.value)}
+                                    onChange={(value) => updateEditField("mobilenumber", value)}
                                   />
                                   <Field
                                     label="Login ID"

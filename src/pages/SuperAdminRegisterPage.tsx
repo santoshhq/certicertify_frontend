@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
 import { AuthLayout } from "../components/layout/AuthLayout";
 import { Field } from "../components/ui/Field";
+import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
@@ -41,10 +42,17 @@ export default function SuperAdminRegisterPage() {
       setError("Passwords don't match.");
       return;
     }
+    if (form.mobilenumber.length !== 10) {
+      setError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
 
     setSubmitting(true);
     try {
-      await registerSuperAdmin(form);
+      await registerSuperAdmin({
+        ...form,
+        mobilenumber: `+91${form.mobilenumber}`,
+      });
       navigate("/superadmin-verify-otp", { state: { email: form.email }, replace: true });
     } catch (err) {
       setError(extractErrorMessage(err, "Registration failed. Try again."));
@@ -89,12 +97,13 @@ export default function SuperAdminRegisterPage() {
           value={form.email}
           onChange={(e) => update("email", e.target.value)}
         />
-        <Field
+        <PhoneField
           label="Mobile number"
           name="mobilenumber"
+          country="India"
           required
           value={form.mobilenumber}
-          onChange={(e) => update("mobilenumber", e.target.value)}
+          onChange={(value) => update("mobilenumber", value)}
         />
         <PasswordField
           label="Password"

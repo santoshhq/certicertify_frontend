@@ -43,6 +43,11 @@ const emptyAddForm: RegisterPayload = {
   password: "",
 };
 
+function localMobileNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
+}
+
 function toEditForm(institution: Institution): EditForm {
   return {
     name: institution.name,
@@ -52,7 +57,7 @@ function toEditForm(institution: Institution): EditForm {
     city: institution.city,
     state: institution.state ?? "",
     country: institution.country,
-    mobile_no: institution.mobile_no ?? "",
+    mobile_no: localMobileNumber(institution.mobile_no ?? ""),
     password: "",
   };
 }
@@ -187,6 +192,13 @@ export default function SuperAdminInstitutionsPage() {
     if (Object.keys(payload).length === 0) {
       cancelEdit();
       return;
+    }
+    if (payload.mobile_no && editForm.mobile_no.length !== 10) {
+      setRowError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
+    if (payload.mobile_no) {
+      payload.mobile_no = `+91${editForm.mobile_no}`;
     }
     setSaving(true);
     setRowError(null);
@@ -508,11 +520,12 @@ function EditInstitutionForm({
           value={form.email_id}
           onChange={(e) => onChange("email_id", e.target.value)}
         />
-        <Field
+        <PhoneField
           label="Mobile number"
           name="mobile_no"
+          country="India"
           value={form.mobile_no}
-          onChange={(e) => onChange("mobile_no", e.target.value)}
+          onChange={(value) => onChange("mobile_no", value)}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
