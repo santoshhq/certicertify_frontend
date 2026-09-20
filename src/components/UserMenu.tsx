@@ -6,7 +6,6 @@ import {
   LogIn,
   LogOut,
   ShieldCheck,
-  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -82,14 +81,6 @@ export function UserMenu() {
               >
                 <ShieldCheck size={16} />
                 Admin Login
-              </Link>
-              <Link
-                to="/superadmin-login"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-mint-50 hover:text-pine-900"
-              >
-                <ShieldAlert size={16} />
-                Super Admin Login
               </Link>
             </>
           )}

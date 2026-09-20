@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { Lock } from "lucide-react";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
@@ -12,6 +13,8 @@ import { extractErrorMessage } from "../lib/api";
 import type { RegisterPayload } from "../types";
 
 type EditableFields = Omit<RegisterPayload, "password">;
+
+const lockedInputClass = "cursor-not-allowed bg-mint-100/70 text-ink-400";
 
 export default function ChangeInformationPage() {
   const { institution, institutionId, logout, refreshInstitution } = useAuth();
@@ -32,6 +35,8 @@ export default function ChangeInformationPage() {
         name: institution.name,
         email_id: institution.email_id,
         institution_name: institution.institution_name,
+        institutional_code: institution.institutional_code ?? "",
+        gst_number: institution.gst_number ?? "",
         postal_code: institution.postal_code ?? "",
         city: institution.city,
         state: institution.state ?? "",
@@ -55,10 +60,11 @@ export default function ChangeInformationPage() {
     setSaving(true);
     try {
       await updateInstitution(institutionId, {
-        ...form,
+        name: form.name,
+        city: form.city,
+        country: form.country,
         postal_code: form.postal_code || null,
         state: form.state || null,
-        mobile_no: form.mobile_no || null,
       });
       await refreshInstitution();
       setSuccess("Institution information updated.");
@@ -104,34 +110,64 @@ export default function ChangeInformationPage() {
         {error && <Alert tone="error">{error}</Alert>}
         {success && <Alert tone="success">{success}</Alert>}
 
-        <Field
-          label="Email address"
-          type="email"
-          name="email_id"
-          required
-          value={form.email_id}
-          onChange={(e) => update("email_id", e.target.value)}
-        />
+        <div className="flex flex-col gap-4 rounded-lg border border-line bg-mint-50/60 p-4">
+          <p className="flex items-center gap-2 text-xs text-ink-700">
+            <Lock size={13} className="shrink-0 text-pine-700" />
+            These details are locked. To change them, contact your Super Admin or Admin.
+          </p>
+          <Field
+            label="Institution name"
+            name="institution_name"
+            value={form.institution_name}
+            readOnly
+            disabled
+            className={lockedInputClass}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Institutional code"
+              name="institutional_code"
+              value={form.institutional_code}
+              readOnly
+              disabled
+              className={lockedInputClass}
+            />
+            <Field
+              label="GST number"
+              name="gst_number"
+              value={form.gst_number}
+              readOnly
+              disabled
+              className={lockedInputClass}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Email address"
+              type="email"
+              name="email_id"
+              value={form.email_id}
+              readOnly
+              disabled
+              className={lockedInputClass}
+            />
+            <Field
+              label="Mobile number"
+              name="mobile_no"
+              value={form.mobile_no ?? ""}
+              readOnly
+              disabled
+              className={lockedInputClass}
+            />
+          </div>
+        </div>
 
-        <Field
-          label="Institution name"
-          name="institution_name"
-          required
-          value={form.institution_name}
-          onChange={(e) => update("institution_name", e.target.value)}
-        />
         <Field
           label="Contact name"
           name="name"
           required
           value={form.name}
           onChange={(e) => update("name", e.target.value)}
-        />
-        <Field
-          label="Mobile number"
-          name="mobile_no"
-          value={form.mobile_no ?? ""}
-          onChange={(e) => update("mobile_no", e.target.value)}
         />
         <div className="grid grid-cols-2 gap-4">
           <Field

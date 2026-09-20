@@ -34,6 +34,7 @@ import SuperAdminAdminsPage from "./pages/SuperAdminAdminsPage";
 import SuperAdminStudentsPage from "./pages/SuperAdminStudentsPage";
 import SuperAdminStudentsUploadPage from "./pages/SuperAdminStudentsUploadPage";
 import SuperAdminStudentStatsPage from "./pages/SuperAdminStudentStatsPage";
+import SuperAdminProfilePage from "./pages/SuperAdminProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 function AppRoutes() {
@@ -112,6 +113,16 @@ function AppRoutes() {
           <SuperAdminProtectedRoute>
             <SuperAdminLayout>
               <SuperAdminDashboardPage />
+            </SuperAdminLayout>
+          </SuperAdminProtectedRoute>
+        }
+      />
+      <Route
+        path="/superadmin/profile"
+        element={
+          <SuperAdminProtectedRoute>
+            <SuperAdminLayout>
+              <SuperAdminProfilePage />
             </SuperAdminLayout>
           </SuperAdminProtectedRoute>
         }

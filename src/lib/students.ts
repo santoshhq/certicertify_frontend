@@ -19,6 +19,35 @@ export async function uploadStudents(
   return data;
 }
 
+export interface SingleStudentPayload {
+  institution_id?: string;
+  batch_year: string;
+  certificate_no: string;
+  roll_no: string;
+  student_name: string;
+  surname_lastName: string;
+  course_or_Acadamic: string;
+  month_year_pass: string;
+  grade: string;
+}
+
+export function singleStudentFormData(payload: SingleStudentPayload, certificate: File) {
+  const form = new FormData();
+  (Object.keys(payload) as (keyof SingleStudentPayload)[]).forEach((key) => {
+    const value = payload[key];
+    if (value !== undefined) form.append(key, value);
+  });
+  form.append("certificate", certificate);
+  return form;
+}
+
+export async function addStudent(payload: SingleStudentPayload, certificate: File) {
+  const { data } = await api.post<Student>("/students", singleStudentFormData(payload, certificate), {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 export async function listStudentsByInstitution(institutionName: string) {
   const { data } = await api.get<Student[]>(
     `/students/institution/${encodeURIComponent(institutionName)}`
@@ -53,6 +82,26 @@ export async function getStudentStats(institutionId: string) {
   return data;
 }
 
+export interface StudentSuggestion {
+  student_id: string;
+  roll_no: string;
+  certificate_no: string;
+  certificate_id?: string;
+  student_name: string;
+  surname_lastName: string;
+  institution_name: string;
+  course_or_Acadamic: string;
+  batch_year: string;
+}
+
+export async function suggestStudents(query: string, signal?: AbortSignal) {
+  const { data } = await api.get<StudentSuggestion[]>("/students/search", {
+    params: { q: query, limit: 8 },
+    signal,
+  });
+  return data;
+}
+
 export async function getStudent(rollNoCertificateNo: string) {
   const { data } = await api.get<Student | Student[]>(
     `/students/${encodeURIComponent(rollNoCertificateNo)}`
@@ -63,7 +112,8 @@ export async function getStudent(rollNoCertificateNo: string) {
 export type StudentUpdatePayload = Partial<
   Pick<
     Student,
-    | "roll_no_certificate_no"
+    | "certificate_no"
+    | "roll_no"
     | "student_name"
     | "surname_lastName"
     | "course_or_Acadamic"

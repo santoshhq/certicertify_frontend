@@ -17,6 +17,8 @@ const emptyForm: RegisterPayload = {
   name: "",
   email_id: "",
   institution_name: "",
+  institutional_code: "",
+  gst_number: "",
   postal_code: "",
   city: "",
   state: "",
@@ -99,6 +101,22 @@ export default function RegisterPage() {
           value={form.institution_name}
           onChange={(e) => update("institution_name", e.target.value)}
         />
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Institutional code"
+            name="institutional_code"
+            required
+            value={form.institutional_code}
+            onChange={(e) => update("institutional_code", e.target.value)}
+          />
+          <Field
+            label="GST number"
+            name="gst_number"
+            required
+            value={form.gst_number}
+            onChange={(e) => update("gst_number", e.target.value.toUpperCase())}
+          />
+        </div>
         <Field
           label="Your name"
           name="name"

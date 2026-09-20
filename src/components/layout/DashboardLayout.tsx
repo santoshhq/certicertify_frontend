@@ -9,11 +9,16 @@ import {
   CalendarClock,
   UploadCloud,
   LogOut,
+  Lock,
   Menu,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Logo } from "../Logo";
+import { Button } from "../ui/Button";
+import { ApprovalBadge } from "../ui/Badge";
 import { useAuth } from "../../context/AuthContext";
+import type { Institution } from "../../types";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,29 +28,85 @@ const NAV_ITEMS = [
   { to: "/dashboard/change-information", label: "Change Information", icon: Building2 },
 ];
 
-function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+function NavItems({ frozen, onNavigate }: { frozen: boolean; onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            clsx(
-              "flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm transition-colors",
-              isActive
-                ? "border-pine-500 bg-white/10 font-medium text-white"
-                : "border-transparent text-sage-300 hover:bg-white/5 hover:text-white"
-            )
-          }
-        >
-          <Icon size={17} strokeWidth={1.75} />
-          {label}
-        </NavLink>
-      ))}
+      {NAV_ITEMS.map(({ to, label, icon: Icon }) =>
+        frozen ? (
+          <span
+            key={to}
+            aria-disabled
+            title="Available once a superadmin approves your account"
+            className="flex cursor-not-allowed items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm text-sage-300/40"
+          >
+            <Icon size={17} strokeWidth={1.75} />
+            <span className="flex-1">{label}</span>
+            <Lock size={13} />
+          </span>
+        ) : (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              clsx(
+                "flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm transition-colors",
+                isActive
+                  ? "border-pine-500 bg-white/10 font-medium text-white"
+                  : "border-transparent text-sage-300 hover:bg-white/5 hover:text-white"
+              )
+            }
+          >
+            <Icon size={17} strokeWidth={1.75} />
+            {label}
+          </NavLink>
+        )
+      )}
     </nav>
+  );
+}
+
+function ApprovalGate({ institution }: { institution: Institution }) {
+  const { refreshInstitution } = useAuth();
+  const [checking, setChecking] = useState(false);
+  const suspended = institution.superadmin_status === "Suspended";
+
+  async function recheck() {
+    setChecking(true);
+    try {
+      await refreshInstitution();
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-xl rounded-xl border border-line bg-white p-8 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-mint-100 text-pine-800">
+        <Lock size={22} />
+      </div>
+      <h1 className="mt-5 font-display text-2xl font-bold text-pine-950">
+        {suspended ? "Account suspended" : "Awaiting approval"}
+      </h1>
+      <div className="mt-3 flex justify-center">
+        <ApprovalBadge status={institution.superadmin_status} />
+      </div>
+      <p className="mt-4 text-sm text-ink-700">
+        {suspended
+          ? "A superadmin has suspended this institution account. Dashboard access is locked until it is reinstated."
+          : "Your registration is complete, but a superadmin has to approve this institution before the dashboard unlocks."}
+      </p>
+      <p className="mt-2 text-sm text-ink-400">
+        Please contact the CertiCertify superadmin if you think this is taking too long.
+      </p>
+      <div className="mt-6 flex justify-center">
+        <Button type="button" variant="secondary" onClick={recheck} loading={checking}>
+          <RefreshCw size={15} />
+          Re-check status
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -67,6 +128,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const { institution, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const frozen = institution?.superadmin_status !== "Approved";
 
   function handleLogout() {
     logout();
@@ -82,7 +144,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             CertiCertify
           </span>
         </div>
-        <NavItems />
+        <NavItems frozen={frozen} />
         <div className="mt-auto px-5 pt-4">
           <div className="border-t border-white/10 pt-4">
             <p className="truncate text-sm font-medium text-white">
@@ -114,7 +176,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 <X size={20} />
               </button>
             </div>
-            <NavItems onNavigate={() => setMobileOpen(false)} />
+            <NavItems frozen={frozen} onNavigate={() => setMobileOpen(false)} />
             <div className="mt-auto border-t border-white/10 px-5 pt-4">
               <LogoutButton onClick={handleLogout} className="w-full" />
             </div>
@@ -143,7 +205,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main className="flex-1 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          {children}
+          {frozen && institution ? <ApprovalGate institution={institution} /> : children}
         </main>
       </div>
     </div>

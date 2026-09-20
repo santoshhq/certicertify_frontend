@@ -12,6 +12,7 @@ import {
   FileArchive,
   UploadCloud,
   ChevronDown,
+  Lock,
 } from "lucide-react";
 import {
   getAllInstitutionsAsAdmin,
@@ -22,6 +23,14 @@ import {
 } from "../lib/admin";
 import type { StudentUpdatePayload } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
+import { UploadResults } from "../components/UploadResults";
+import { useAdminAuth } from "../context/AdminAuthContext";
+import { FrozenControl, NO_PERMISSION_TITLE, NoPermissionNote } from "../components/FrozenControl";
+import {
+  BulkUpdateBar,
+  rowCheckboxClass,
+  useBulkStudentUpdate,
+} from "../components/BulkStudentUpdate";
 import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
@@ -33,7 +42,8 @@ import type { PageSize } from "../components/ui/TablePager";
 import type { Institution, Student, StudentUploadResponse } from "../types";
 
 type EditableField =
-  | "roll_no_certificate_no"
+  | "certificate_no"
+  | "roll_no"
   | "student_name"
   | "surname_lastName"
   | "course_or_Acadamic"
@@ -42,7 +52,8 @@ type EditableField =
   | "grade";
 
 const EDITABLE_FIELDS: EditableField[] = [
-  "roll_no_certificate_no",
+  "certificate_no",
+  "roll_no",
   "student_name",
   "surname_lastName",
   "course_or_Acadamic",
@@ -69,6 +80,10 @@ function sortYearsDesc(values: Iterable<string>) {
 }
 
 export default function AdminStudentsPage() {
+  const { can } = useAdminAuth();
+  const canCreate = can("students_create");
+  const canUpdate = can("students_update");
+  const canDelete = can("students_delete");
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [institutionsError, setInstitutionsError] = useState<string | null>(null);
   const [institutionId, setInstitutionId] = useState("");
@@ -94,6 +109,8 @@ export default function AdminStudentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
+
+  const bulk = useBulkStudentUpdate(students, setStudents, updateStudentAsAdmin);
 
   const selectedInstitution = institutions.find((i) => i.institution_id === institutionId);
 
@@ -130,6 +147,7 @@ export default function AdminStudentsPage() {
     setPassYearFilter("");
     setPage(1);
     setAddOpen(false);
+    bulk.clear();
     load(selectedInstitution.institution_name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedInstitution?.institution_id]);
@@ -150,7 +168,8 @@ export default function AdminStudentsPage() {
       if (passYearFilter && passOutYear(s.month_year_pass) !== passYearFilter) return false;
       if (!q) return true;
       return (
-        s.roll_no_certificate_no.toLowerCase().includes(q) ||
+        (s.roll_no ?? "").toLowerCase().includes(q) ||
+        (s.certificate_no ?? "").toLowerCase().includes(q) ||
         `${s.student_name} ${s.surname_lastName}`.toLowerCase().includes(q)
       );
     });
@@ -177,7 +196,8 @@ export default function AdminStudentsPage() {
     setRowError(null);
     setEditingId(student.student_id);
     setEditForm({
-      roll_no_certificate_no: student.roll_no_certificate_no,
+      certificate_no: student.certificate_no ?? "",
+      roll_no: student.roll_no,
       student_name: student.student_name,
       surname_lastName: student.surname_lastName,
       course_or_Acadamic: student.course_or_Acadamic,
@@ -199,8 +219,8 @@ export default function AdminStudentsPage() {
 
   async function saveEdit(student: Student) {
     if (!editForm) return;
-    if (!editForm.roll_no_certificate_no.trim()) {
-      setRowError("Roll / certificate no. can't be empty.");
+    if (!editForm.roll_no.trim()) {
+      setRowError("Roll no. can't be empty.");
       return;
     }
     const payload: StudentUpdatePayload = {};
@@ -216,7 +236,7 @@ export default function AdminStudentsPage() {
     setSaving(true);
     setRowError(null);
     try {
-      const updated = await updateStudentAsAdmin(student.roll_no_certificate_no, payload);
+      const updated = await updateStudentAsAdmin(student.roll_no, payload);
       setStudents((prev) =>
         prev.map((s) => (s.student_id === student.student_id ? updated : s))
       );
@@ -232,7 +252,7 @@ export default function AdminStudentsPage() {
     setDeletingId(student.student_id);
     setRowError(null);
     try {
-      await deleteStudentAsAdmin(student.roll_no_certificate_no);
+      await deleteStudentAsAdmin(student.roll_no);
       setStudents((prev) => prev.filter((s) => s.student_id !== student.student_id));
       setConfirmingDeleteId(null);
     } catch (err) {
@@ -298,7 +318,7 @@ export default function AdminStudentsPage() {
                 />
                 <input
                   type="search"
-                  placeholder="Roll / certificate no. or name"
+                  placeholder="Roll no., certificate no., or name"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -354,8 +374,10 @@ export default function AdminStudentsPage() {
               type="button"
               variant={addOpen ? "secondary" : "primary"}
               onClick={() => setAddOpen((o) => !o)}
+              disabled={!canCreate}
+              title={canCreate ? undefined : NO_PERMISSION_TITLE}
             >
-              <UserPlus size={16} />
+              {canCreate ? <UserPlus size={16} /> : <Lock size={16} />}
               Add students to a batch
               <ChevronDown
                 size={14}
@@ -364,13 +386,21 @@ export default function AdminStudentsPage() {
             </Button>
           </div>
 
-          {addOpen && (
+          {addOpen && canCreate && (
             <AddToBatchPanel
               institutionId={selectedInstitution.institution_id}
               batchYears={batchYears}
               onClose={() => setAddOpen(false)}
               onAdded={handleAdded}
             />
+          )}
+
+          {canUpdate ? (
+            <BulkUpdateBar bulk={bulk} />
+          ) : (
+            <div className="mt-4">
+              <NoPermissionNote action="edit students or run bulk updates" />
+            </div>
           )}
 
           <div className="mt-4">
@@ -380,13 +410,34 @@ export default function AdminStudentsPage() {
                 <Alert tone="error">{rowError}</Alert>
               </div>
             )}
+            {bulk.error && (
+              <div className="mb-4">
+                <Alert tone="error">{bulk.error}</Alert>
+              </div>
+            )}
+            {bulk.success && (
+              <div className="mb-4">
+                <Alert tone="success">{bulk.success}</Alert>
+              </div>
+            )}
             {loading && <PageSpinner />}
             {!loading && !error && (
               <div className="overflow-hidden rounded-lg border border-line bg-white">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1000px] text-left text-sm">
+                  <table className="w-full min-w-[1120px] text-left text-sm">
                     <thead>
                       <tr className="ledger-row bg-mint-50 text-xs uppercase tracking-wide text-ink-400">
+                        <th className="w-10 px-4 py-3 font-medium">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all on this page"
+                            checked={bulk.allVisibleSelected(visible)}
+                            onChange={() => bulk.toggleAll(visible)}
+                            disabled={!canUpdate}
+                            className={rowCheckboxClass}
+                          />
+                        </th>
+                        <th className="px-4 py-3 font-medium">Certificate no.</th>
                         <th className="px-4 py-3 font-medium">Roll no.</th>
                         <th className="px-4 py-3 font-medium">Name</th>
                         <th className="px-4 py-3 font-medium">Surname</th>
@@ -404,14 +455,31 @@ export default function AdminStudentsPage() {
                         const isConfirmingDelete = confirmingDeleteId === student.student_id;
                         return (
                           <tr key={student.student_id} className="ledger-row last:border-0 align-top">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${student.student_name}`}
+                                checked={bulk.isSelected(student.student_id)}
+                                onChange={() => bulk.toggle(student.student_id)}
+                                disabled={!canUpdate}
+                                className={rowCheckboxClass}
+                              />
+                            </td>
                             {isEditing && editForm ? (
                               <>
                                 <td className="px-4 py-2">
                                   <input
                                     className={cellInputClass() + " font-mono"}
-                                    value={editForm.roll_no_certificate_no}
+                                    value={editForm.certificate_no}
+                                    onChange={(e) => updateEditField("certificate_no", e.target.value)}
+                                  />
+                                </td>
+                                <td className="px-4 py-2">
+                                  <input
+                                    className={cellInputClass() + " font-mono"}
+                                    value={editForm.roll_no}
                                     onChange={(e) =>
-                                      updateEditField("roll_no_certificate_no", e.target.value)
+                                      updateEditField("roll_no", e.target.value)
                                     }
                                   />
                                 </td>
@@ -503,7 +571,10 @@ export default function AdminStudentsPage() {
                             ) : (
                               <>
                                 <td className="px-4 py-3 font-mono text-xs text-ink-700">
-                                  {student.roll_no_certificate_no}
+                                  {student.certificate_no || "—"}
+                                </td>
+                                <td className="px-4 py-3 font-mono text-xs text-ink-700">
+                                  {student.roll_no}
                                 </td>
                                 <td className="px-4 py-3 text-ink-900">{student.student_name}</td>
                                 <td className="px-4 py-3 text-ink-700">
@@ -550,22 +621,26 @@ export default function AdminStudentsPage() {
                                     </div>
                                   ) : (
                                     <div className="flex items-center gap-3">
-                                      <button
-                                        type="button"
-                                        onClick={() => startEdit(student)}
-                                        aria-label="Edit student"
-                                        className="text-ink-400 hover:text-pine-800"
-                                      >
-                                        <Pencil size={15} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setConfirmingDeleteId(student.student_id)}
-                                        aria-label="Delete student"
-                                        className="text-ink-400 hover:text-rose-600"
-                                      >
-                                        <Trash2 size={15} />
-                                      </button>
+                                      <FrozenControl allowed={canUpdate} label="Edit student">
+                                        <button
+                                          type="button"
+                                          onClick={() => startEdit(student)}
+                                          aria-label="Edit student"
+                                          className="text-ink-400 hover:text-pine-800"
+                                        >
+                                          <Pencil size={15} />
+                                        </button>
+                                      </FrozenControl>
+                                      <FrozenControl allowed={canDelete} label="Delete student">
+                                        <button
+                                          type="button"
+                                          onClick={() => setConfirmingDeleteId(student.student_id)}
+                                          aria-label="Delete student"
+                                          className="text-ink-400 hover:text-rose-600"
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                      </FrozenControl>
                                     </div>
                                   )}
                                 </td>
@@ -576,7 +651,7 @@ export default function AdminStudentsPage() {
                       })}
                       {filtered.length === 0 && (
                         <tr>
-                          <td colSpan={9} className="px-5 py-10 text-center text-ink-400">
+                          <td colSpan={11} className="px-5 py-10 text-center text-ink-400">
                             {hasFilters
                               ? "No students match the current filters."
                               : "No students uploaded yet."}
@@ -654,6 +729,10 @@ function AddToBatchPanel({
     }
     if (!excelFile) {
       setError("Choose an .xlsx file with the student details.");
+      return;
+    }
+    if (certificates.length === 0) {
+      setError("Attach the certificates (PDF/JPG files or a .zip) — the roster can't be uploaded without them.");
       return;
     }
     setError(null);
@@ -737,8 +816,8 @@ function AddToBatchPanel({
           onFiles={(files) => setExcelFile(files[0])}
         />
         <DropZone
-          label="Certificates (optional)"
-          hint="PDF, JPG, or a .zip of them"
+          label="Certificates"
+          hint="Required — PDF, JPG, or a .zip of them"
           icon={FileText}
           accept=".pdf,.jpg,.jpeg,.zip"
           multiple
@@ -808,15 +887,10 @@ function AddToBatchPanel({
         )}
       </div>
 
-      {result && result.errors.length > 0 && (
-        <ul className="mt-3 rounded-md border border-line bg-white">
-          {result.errors.map((err, i) => (
-            <li key={i} className="ledger-row flex gap-3 px-4 py-2 text-sm last:border-0">
-              <span className="font-mono text-xs text-ink-400">Row {err.row}</span>
-              <span className="text-ink-700">{err.reason}</span>
-            </li>
-          ))}
-        </ul>
+      {result && (result.errors.length > 0 || result.unmatched_certificates.length > 0) && (
+
+        <UploadResults result={{ ...result, students: [] }} compact />
+
       )}
     </form>
   );

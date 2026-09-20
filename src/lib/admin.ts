@@ -1,7 +1,9 @@
 import { api } from "./api";
-import type { StudentUpdatePayload } from "./students";
+import type { SingleStudentPayload, StudentUpdatePayload } from "./students";
+import { singleStudentFormData } from "./students";
 import type {
   AdminInstitutionUpdatePayload,
+  AdminMe,
   Institution,
   Student,
   StudentStats,
@@ -16,6 +18,11 @@ export async function loginAdmin(admin_loginId: string, password: string) {
     token_type: string;
     admin_name?: string;
   }>("/admin/login", { admin_loginId, password });
+  return data;
+}
+
+export async function getAdminMe() {
+  const { data } = await api.get<AdminMe>("/admin/me");
   return data;
 }
 
@@ -42,6 +49,15 @@ export async function deleteInstitutionAsAdmin(institutionId: string) {
 }
 
 // -- Student management (admin scope) ---------------------------------------
+
+export async function addStudentAsAdmin(payload: SingleStudentPayload, certificate: File) {
+  const { data } = await api.post<Student>(
+    "/admin/students",
+    singleStudentFormData(payload, certificate),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return data;
+}
 
 export async function uploadStudentsAsAdmin(
   excelFile: File,

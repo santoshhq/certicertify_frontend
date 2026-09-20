@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Pencil, Trash2, X, UserPlus, Wand2 } from "lucide-react";
+import { Pencil, ShieldCheck, Trash2, X, UserPlus, Wand2 } from "lucide-react";
 import { createAdmin, getAdmins, updateAdmin, deleteAdmin } from "../lib/superadmin";
 import { extractErrorMessage } from "../lib/api";
 import { Alert } from "../components/ui/Alert";
@@ -9,7 +9,21 @@ import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
-import type { Admin, AdminCreatePayload, AdminUpdatePayload } from "../types";
+import { ToggleSwitch } from "../components/ui/ToggleSwitch";
+import {
+  AdminPermissionsEditor,
+  EMPTY_PERMISSIONS,
+  VISIBLE_PERMISSION_COUNT,
+  countPermissions,
+  normalizePermissions,
+} from "../components/AdminPermissionsEditor";
+import type {
+  Admin,
+  AdminAccessLevel,
+  AdminCreatePayload,
+  AdminPermissions,
+  AdminUpdatePayload,
+} from "../types";
 
 const emptyCreateForm: AdminCreatePayload = {
   admin_name: "",
@@ -17,6 +31,9 @@ const emptyCreateForm: AdminCreatePayload = {
   mobilenumber: "",
   admin_userId: "",
   password: "",
+  access_level: "custom",
+  permissions: EMPTY_PERMISSIONS,
+  status: true,
 };
 
 type EditForm = {
@@ -25,7 +42,14 @@ type EditForm = {
   mobilenumber: string;
   admin_userId: string;
   password: string;
+  access_level: AdminAccessLevel;
+  permissions: AdminPermissions;
+  status: boolean;
 };
+
+function samePermissions(a: AdminPermissions, b: AdminPermissions) {
+  return (Object.keys(a) as (keyof AdminPermissions)[]).every((k) => a[k] === b[k]);
+}
 
 const LOGIN_ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -36,6 +60,12 @@ function generateLoginId() {
     id += LOGIN_ID_CHARS[Math.floor(Math.random() * LOGIN_ID_CHARS.length)];
   }
   return id;
+}
+
+function pillClass(tone: "ok" | "bad") {
+  return tone === "ok"
+    ? "inline-flex items-center gap-1.5 rounded-full border border-pine-600 bg-mint-100 px-2.5 py-1 text-xs font-medium text-pine-800"
+    : "inline-flex items-center gap-1.5 rounded-full border border-rose-600/40 bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-600";
 }
 
 function localMobileNumber(value: string) {
@@ -50,6 +80,9 @@ function toEditForm(admin: Admin): EditForm {
     mobilenumber: localMobileNumber(admin.mobilenumber),
     admin_userId: admin.admin_loginId,
     password: "",
+    access_level: admin.access_level ?? "custom",
+    permissions: normalizePermissions(admin.permissions),
+    status: admin.status ?? true,
   };
 }
 
@@ -71,6 +104,7 @@ export default function SuperAdminAdminsPage() {
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -88,7 +122,10 @@ export default function SuperAdminAdminsPage() {
     load();
   }, []);
 
-  function updateCreateField<K extends keyof AdminCreatePayload>(key: K, value: string) {
+  function updateCreateField<K extends keyof AdminCreatePayload>(
+    key: K,
+    value: AdminCreatePayload[K]
+  ) {
     setCreateForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -140,7 +177,7 @@ export default function SuperAdminAdminsPage() {
     setRowError(null);
   }
 
-  function updateEditField<K extends keyof EditForm>(key: K, value: string) {
+  function updateEditField<K extends keyof EditForm>(key: K, value: EditForm[K]) {
     setEditForm((f) => (f ? { ...f, [key]: value } : f));
   }
 
@@ -153,6 +190,11 @@ export default function SuperAdminAdminsPage() {
     if (editForm.mobilenumber !== original.mobilenumber) payload.mobilenumber = editForm.mobilenumber;
     if (editForm.admin_userId !== original.admin_userId) payload.admin_userId = editForm.admin_userId;
     if (editForm.password) payload.password = editForm.password;
+    if (editForm.access_level !== original.access_level) payload.access_level = editForm.access_level;
+    if (!samePermissions(editForm.permissions, original.permissions)) {
+      payload.permissions = editForm.permissions;
+    }
+    if (editForm.status !== original.status) payload.status = editForm.status;
 
     if (Object.keys(payload).length === 0) {
       cancelEdit();
@@ -185,6 +227,20 @@ export default function SuperAdminAdminsPage() {
       setRowError(extractErrorMessage(err, "Couldn't save changes."));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleStatus(admin: Admin, active: boolean) {
+    setTogglingStatusId(admin.admin_id);
+    setRowError(null);
+    try {
+      const updated = await updateAdmin(admin.admin_id, { status: active });
+      setAdmins((prev) => prev.map((a) => (a.admin_id === admin.admin_id ? updated : a)));
+      setEditForm((f) => (f && editingId === admin.admin_id ? { ...f, status: active } : f));
+    } catch (err) {
+      setRowError(extractErrorMessage(err, "Couldn't change the admin's status."));
+    } finally {
+      setTogglingStatusId(null);
     }
   }
 
@@ -284,6 +340,15 @@ export default function SuperAdminAdminsPage() {
             value={createForm.password}
             onChange={(e) => updateCreateField("password", e.target.value)}
           />
+          <AdminPermissionsEditor
+            accessLevel={createForm.access_level}
+            permissions={createForm.permissions}
+            status={createForm.status}
+            disabled={creating}
+            onAccessLevelChange={(level) => updateCreateField("access_level", level)}
+            onPermissionsChange={(next) => updateCreateField("permissions", next)}
+            onStatusChange={(active) => updateCreateField("status", active)}
+          />
           <div>
             <Button type="submit" loading={creating}>
               Create admin
@@ -303,13 +368,15 @@ export default function SuperAdminAdminsPage() {
         {!loading && !error && (
           <div className="overflow-hidden rounded-lg border border-line bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[960px] text-left text-sm">
                 <thead>
                   <tr className="ledger-row bg-mint-50 text-xs uppercase tracking-wide text-ink-400">
                     <th className="px-4 py-3 font-medium">Login ID</th>
                     <th className="px-4 py-3 font-medium">Name</th>
                     <th className="px-4 py-3 font-medium">Email</th>
                     <th className="px-4 py-3 font-medium">Mobile</th>
+                    <th className="px-4 py-3 font-medium">Access</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -326,6 +393,30 @@ export default function SuperAdminAdminsPage() {
                           <td className="px-4 py-3 text-ink-900">{admin.admin_name}</td>
                           <td className="px-4 py-3 text-ink-700">{admin.email}</td>
                           <td className="px-4 py-3 text-ink-700">{admin.mobilenumber}</td>
+                          <td className="px-4 py-3">
+                            {admin.access_level === "full" ? (
+                              <span className={pillClass("ok")}>
+                                <ShieldCheck size={12} /> Full access
+                              </span>
+                            ) : (
+                              <span className="text-xs text-ink-700">
+                                Custom: {countPermissions(admin.permissions)} of {VISIBLE_PERMISSION_COUNT}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <ToggleSwitch
+                                checked={admin.status !== false}
+                                disabled={togglingStatusId === admin.admin_id}
+                                onChange={(active) => toggleStatus(admin, active)}
+                                label={`${admin.status === false ? "Activate" : "Deactivate"} ${admin.admin_name}`}
+                              />
+                              <span className={pillClass(admin.status === false ? "bad" : "ok")}>
+                                {admin.status === false ? "Inactive" : "Active"}
+                              </span>
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             {isConfirmingDelete ? (
                               <div className="flex items-center gap-2">
@@ -369,13 +460,13 @@ export default function SuperAdminAdminsPage() {
                         </tr>
                         {isEditing && editForm && (
                           <tr className="border-b border-line bg-mint-50/60">
-                            <td colSpan={5} className="px-4 py-5">
+                            <td colSpan={7} className="px-4 py-5">
                               <form
                                 onSubmit={(e) => {
                                   e.preventDefault();
                                   saveEdit(admin);
                                 }}
-                                className="flex max-w-2xl flex-col gap-4"
+                                className="flex max-w-3xl flex-col gap-4"
                               >
                                 <div className="grid gap-4 sm:grid-cols-2">
                                   <Field
@@ -421,6 +512,15 @@ export default function SuperAdminAdminsPage() {
                                   value={editForm.password}
                                   onChange={(e) => updateEditField("password", e.target.value)}
                                 />
+                                <AdminPermissionsEditor
+                                  accessLevel={editForm.access_level}
+                                  permissions={editForm.permissions}
+                                  status={editForm.status}
+                                  disabled={saving}
+                                  onAccessLevelChange={(level) => updateEditField("access_level", level)}
+                                  onPermissionsChange={(next) => updateEditField("permissions", next)}
+                                  onStatusChange={(active) => updateEditField("status", active)}
+                                />
                                 <div className="flex items-center gap-3">
                                   <Button type="submit" loading={saving}>
                                     Save changes
@@ -443,7 +543,7 @@ export default function SuperAdminAdminsPage() {
                   })}
                   {admins.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center text-ink-400">
+                      <td colSpan={7} className="px-5 py-10 text-center text-ink-400">
                         No admins created yet.
                       </td>
                     </tr>

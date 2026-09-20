@@ -9,12 +9,17 @@ import {
 } from "react";
 import { jwtDecode } from "jwt-decode";
 import { SUPERADMIN_TOKEN_KEY, setSuperAdminUnauthorizedHandler } from "../lib/api";
+import { getSuperAdminProfile } from "../lib/superadmin";
+import type { SuperAdminProfile } from "../types";
 
 const EMAIL_KEY = "certicertify_superadmin_email";
 
 interface SuperAdminAuthContextValue {
   token: string | null;
   email: string | null;
+  profile: SuperAdminProfile | null;
+  profileLoading: boolean;
+  refreshProfile: () => Promise<void>;
   login: (token: string, email: string) => void;
   logout: () => void;
 }
@@ -40,17 +45,43 @@ export function SuperAdminAuthProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(() =>
     localStorage.getItem(EMAIL_KEY)
   );
+  const [profile, setProfile] = useState<SuperAdminProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(Boolean(token));
 
   const logout = useCallback(() => {
     localStorage.removeItem(SUPERADMIN_TOKEN_KEY);
     localStorage.removeItem(EMAIL_KEY);
     setToken(null);
     setEmail(null);
+    setProfile(null);
+    setProfileLoading(false);
   }, []);
 
   useEffect(() => {
     setSuperAdminUnauthorizedHandler(logout);
   }, [logout]);
+
+  const refreshProfile = useCallback(async () => {
+    setProfileLoading(true);
+    try {
+      const data = await getSuperAdminProfile();
+      setProfile(data);
+      if (data.email) setEmail(data.email);
+    } catch {
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+    refreshProfile();
+  }, [token, refreshProfile]);
 
   const login = useCallback((newToken: string, newEmail: string) => {
     localStorage.setItem(SUPERADMIN_TOKEN_KEY, newToken);
@@ -60,8 +91,8 @@ export function SuperAdminAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SuperAdminAuthContextValue>(
-    () => ({ token, email, login, logout }),
-    [token, email, login, logout]
+    () => ({ token, email, profile, profileLoading, refreshProfile, login, logout }),
+    [token, email, profile, profileLoading, refreshProfile, login, logout]
   );
 
   return (

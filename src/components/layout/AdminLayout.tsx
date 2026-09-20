@@ -8,42 +8,63 @@ import {
   CalendarClock,
   UploadCloud,
   LogOut,
+  Lock,
   Menu,
   X,
   ShieldCheck,
 } from "lucide-react";
 import { Logo } from "../Logo";
 import { useAdminAuth } from "../../context/AdminAuthContext";
+import type { AdminPermissionKey } from "../../types";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  permission?: AdminPermissionKey;
+}[] = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/institutions", label: "Institutions", icon: Building2 },
-  { to: "/admin/students", label: "Previous data Year Wise", icon: CalendarClock },
-  { to: "/admin/students/upload", label: "Upload Students", icon: UploadCloud },
+  { to: "/admin/institutions", label: "Institutions", icon: Building2, permission: "institutions_view" },
+  { to: "/admin/students", label: "Previous data Year Wise", icon: CalendarClock, permission: "students_view" },
+  { to: "/admin/students/upload", label: "Upload Students", icon: UploadCloud, permission: "students_create" },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+  const { can } = useAdminAuth();
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            clsx(
-              "flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm transition-colors",
-              isActive
-                ? "border-amber-600 bg-white/10 font-medium text-white"
-                : "border-transparent text-sage-300 hover:bg-white/5 hover:text-white"
-            )
-          }
-        >
-          <Icon size={17} strokeWidth={1.75} />
-          {label}
-        </NavLink>
-      ))}
+      {NAV_ITEMS.map(({ to, label, icon: Icon, permission }) =>
+        permission && !can(permission) ? (
+          <span
+            key={to}
+            aria-disabled
+            title="Your admin account doesn't have permission for this section"
+            className="flex cursor-not-allowed items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm text-sage-300/40"
+          >
+            <Icon size={17} strokeWidth={1.75} />
+            <span className="flex-1">{label}</span>
+            <Lock size={13} />
+          </span>
+        ) : (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              clsx(
+                "flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm transition-colors",
+                isActive
+                  ? "border-amber-600 bg-white/10 font-medium text-white"
+                  : "border-transparent text-sage-300 hover:bg-white/5 hover:text-white"
+              )
+            }
+          >
+            <Icon size={17} strokeWidth={1.75} />
+            {label}
+          </NavLink>
+        )
+      )}
     </nav>
   );
 }

@@ -10,6 +10,7 @@ import {
   UploadCloud,
   LogOut,
   Menu,
+  UserRound,
   X,
   ShieldAlert,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: "/superadmin/admins", label: "Admins", icon: ShieldCheck },
   { to: "/superadmin/students", label: "Previous data Year Wise", icon: CalendarClock },
   { to: "/superadmin/students/upload", label: "Upload Students", icon: UploadCloud },
+  { to: "/superadmin/profile", label: "Profile", icon: UserRound },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
@@ -65,7 +67,7 @@ function LogoutButton({ onClick, className }: { onClick: () => void; className?:
 }
 
 export function SuperAdminLayout({ children }: { children: ReactNode }) {
-  const { email, logout } = useSuperAdminAuth();
+  const { email, profile, logout } = useSuperAdminAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -73,6 +75,7 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
     logout();
     navigate("/superadmin-login", { replace: true });
   }
+
 
   return (
     <div className="min-h-svh bg-paper lg:grid lg:grid-cols-[268px_1fr]">
@@ -92,7 +95,10 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <NavItems />
         <div className="mt-auto px-5 pt-4">
           <div className="border-t border-white/10 pt-4">
-            <p className="truncate text-xs text-sage-300">{email ?? ""}</p>
+            {profile?.fullname && (
+              <p className="truncate text-sm font-medium text-white">{profile.fullname}</p>
+            )}
+            <p className="truncate text-xs text-sage-300">{profile?.email ?? email ?? ""}</p>
           </div>
           <LogoutButton onClick={handleLogout} className="mt-4 w-full" />
         </div>

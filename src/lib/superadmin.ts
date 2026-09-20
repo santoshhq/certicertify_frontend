@@ -1,5 +1,6 @@
 import { api } from "./api";
-import type { StudentUpdatePayload } from "./students";
+import type { SingleStudentPayload, StudentUpdatePayload } from "./students";
+import { singleStudentFormData } from "./students";
 import type {
   Admin,
   AdminCreatePayload,
@@ -10,6 +11,7 @@ import type {
   StudentUploadResponse,
   RegisterPayload,
   SuperAdminInstitutionUpdatePayload,
+  SuperAdminProfile,
   SuperAdminRegisterPayload,
 } from "../types";
 
@@ -56,6 +58,19 @@ export async function confirmSuperAdminPasswordReset(
     "/superadmin/password-reset/confirm",
     { email, otp, new_password }
   );
+  return data;
+}
+
+export async function getSuperAdminProfile() {
+  const { data } = await api.get<SuperAdminProfile>("/superadmin/profile-info");
+  return data;
+}
+
+export async function updateSuperAdminProfile(payload: {
+  fullname?: string;
+  mobilenumber?: string;
+}) {
+  const { data } = await api.patch<SuperAdminProfile>("/superadmin/profile-info", payload);
   return data;
 }
 
@@ -137,6 +152,15 @@ export async function uploadStudentsAsSuperAdmin(
   return data;
 }
 
+export async function addStudentAsSuperAdmin(payload: SingleStudentPayload, certificate: File) {
+  const { data } = await api.post<Student>(
+    "/superadmin/students",
+    singleStudentFormData(payload, certificate),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return data;
+}
+
 export async function listStudentsByInstitutionAsSuperAdmin(institutionName: string) {
   const { data } = await api.get<Student[]>(
     `/superadmin/students/institution/${encodeURIComponent(institutionName)}`
@@ -185,6 +209,21 @@ export async function updateStudentAsSuperAdmin(
   const { data } = await api.patch<Student>(
     `/superadmin/students/${encodeURIComponent(rollNoCertificateNo)}`,
     payload
+  );
+  return data;
+}
+
+export async function replaceStudentCertificateAsSuperAdmin(
+  rollNoCertificateNo: string,
+  certificate: File
+) {
+  const form = new FormData();
+  form.append("certificate", certificate);
+
+  const { data } = await api.patch<Student>(
+    `/superadmin/students/${encodeURIComponent(rollNoCertificateNo)}/certificate`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return data;
 }

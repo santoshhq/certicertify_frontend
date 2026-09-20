@@ -1,25 +1,26 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
   FileX,
   ShieldX,
-  ExternalLink,
   Check,
   Building2,
   GraduationCap,
   FileCheck,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { CertificateViewer } from "../components/CertificateViewer";
 import { UserMenu } from "../components/UserMenu";
 import { getStudent } from "../lib/students";
+import type { StudentSuggestion } from "../lib/students";
+import {
+  StudentSuggestionList,
+  useStudentSuggestions,
+} from "../components/StudentSearchSuggestions";
 import { extractErrorMessage } from "../lib/api";
 import type { Student } from "../types";
-
-function certificateKind(url: string): "pdf" | "image" {
-  return url.toLowerCase().split("?")[0].endsWith(".pdf") ? "pdf" : "image";
-}
 
 function Detail({
   label,
@@ -61,11 +62,60 @@ export default function VerifyCertificatePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Typeahead
+  const [inputFocused, setInputFocused] = useState(false);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const { items: suggestions } = useStudentSuggestions(
+    rollNo,
+    inputFocused && !suggestionsDismissed
+  );
+  const showSuggestions = inputFocused && !suggestionsDismissed && suggestions.length > 0;
+
+  function handleInputChange(value: string) {
+    setRollNo(value);
+    setSuggestionsDismissed(false);
+    setActiveIndex(-1);
+  }
+
+  function pickSuggestion(item: StudentSuggestion) {
+    const q = rollNo.trim().toUpperCase();
+    const identifier =
+      item.certificate_no?.toUpperCase().startsWith(q) && !item.roll_no.toUpperCase().startsWith(q)
+        ? item.certificate_no
+        : item.roll_no;
+    setRollNo(identifier);
+    setSuggestionsDismissed(true);
+    setActiveIndex(-1);
+    lookup(identifier);
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      pickSuggestion(suggestions[activeIndex]);
+    } else if (e.key === "Escape") {
+      setSuggestionsDismissed(true);
+      setActiveIndex(-1);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const query = rollNo.trim();
     if (!query) return;
+    setSuggestionsDismissed(true);
+    await lookup(query);
+  }
 
+  async function lookup(query: string) {
     setError(null);
     setNotFound(false);
     setLoading(true);
@@ -133,11 +183,30 @@ export default function VerifyCertificatePage() {
               <input
                 type="text"
                 value={rollNo}
-                onChange={(e) => setRollNo(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                onKeyDown={handleKeyDown}
                 placeholder="Roll number or Certificate number"
                 autoComplete="off"
+                role="combobox"
+                aria-expanded={showSuggestions}
+                aria-controls="student-suggestions"
+                aria-activedescendant={
+                  activeIndex >= 0 ? `student-suggestions-${activeIndex}` : undefined
+                }
                 className="w-full rounded-xl bg-transparent py-3 pl-11 pr-4 font-mono text-base text-ink-900 outline-none placeholder:font-sans placeholder:text-ink-400 sm:rounded-full"
               />
+              {showSuggestions && (
+                <StudentSuggestionList
+                  items={suggestions}
+                  query={rollNo}
+                  activeIndex={activeIndex}
+                  listId="student-suggestions"
+                  onHover={setActiveIndex}
+                  onPick={pickSuggestion}
+                />
+              )}
             </label>
             <button
               type="submit"
@@ -230,7 +299,7 @@ export default function VerifyCertificatePage() {
             )}
 
             {students.map((student, index) => {
-              const certificateId = student.certificate_id || student.roll_no_certificate_no || "";
+              const certificateId = student.certificate_id || student.roll_no || "";
 
               return (
                 <article key={`${student.student_id}-${certificateId}`} className="overflow-hidden rounded-2xl border border-line bg-white">
@@ -271,7 +340,8 @@ export default function VerifyCertificatePage() {
                 <dl className="mt-8 grid gap-x-8 gap-y-6 border-t border-line pt-6 sm:grid-cols-2">
                   <Detail label="Institution" value={student.institution_name} wide />
                   <Detail label="Certificate ID" value={certificateId} mono />
-                  <Detail label="Roll / certificate number" value={student.roll_no_certificate_no} mono />
+                  <Detail label="Certificate number" value={student.certificate_no} mono />
+                  <Detail label="Roll number" value={student.roll_no} mono />
                   <Detail label="Batch year" value={student.batch_year} />
                   <Detail label="Course" value={student.course_or_Acadamic} wide />
                   <Detail label="Passed out" value={student.month_year_pass} />
@@ -281,30 +351,7 @@ export default function VerifyCertificatePage() {
 
               <div className="flex min-h-[360px] flex-col overflow-hidden rounded-xl border border-line bg-mint-50 lg:min-h-[480px]">
                 {student.certificate_url ? (
-                  <>
-                    {certificateKind(student.certificate_url) === "pdf" ? (
-                      <embed
-                        src={student.certificate_url}
-                        type="application/pdf"
-                        className="h-full min-h-[360px] w-full flex-1 lg:min-h-[420px]"
-                      />
-                    ) : (
-                      <img
-                        src={student.certificate_url}
-                        alt={`Certificate for ${student.roll_no_certificate_no}`}
-                        className="h-full w-full flex-1 object-contain"
-                      />
-                    )}
-                    <a
-                      href={student.certificate_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 border-t border-line bg-white px-4 py-3 text-sm font-medium text-pine-800 hover:bg-mint-50"
-                    >
-                      Open certificate
-                      <ExternalLink size={14} />
-                    </a>
-                  </>
+                  <CertificateViewer url={student.certificate_url} rollNo={student.roll_no} />
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
                     <FileX size={26} className="text-ink-400" strokeWidth={1.5} />

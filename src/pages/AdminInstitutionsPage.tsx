@@ -7,6 +7,8 @@ import {
   deleteInstitutionAsAdmin,
 } from "../lib/admin";
 import { extractErrorMessage } from "../lib/api";
+import { useAdminAuth } from "../context/AdminAuthContext";
+import { FrozenControl } from "../components/FrozenControl";
 import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
@@ -14,13 +16,16 @@ import { Field } from "../components/ui/Field";
 import { PasswordField } from "../components/ui/PasswordField";
 import { SelectField } from "../components/ui/SelectField";
 import { VerifiedBadge } from "../components/ui/Badge";
+import { ApprovalStatusControl } from "../components/ApprovalStatusControl";
 import { COUNTRIES, statesFor } from "../lib/locations";
-import type { AdminInstitutionUpdatePayload, Institution } from "../types";
+import type { AdminInstitutionUpdatePayload, Institution, InstitutionApprovalStatus } from "../types";
 
 type EditForm = {
   name: string;
   email_id: string;
   institution_name: string;
+  institutional_code: string;
+  gst_number: string;
   postal_code: string;
   city: string;
   state: string;
@@ -34,6 +39,8 @@ function toEditForm(institution: Institution): EditForm {
     name: institution.name,
     email_id: institution.email_id,
     institution_name: institution.institution_name,
+    institutional_code: institution.institutional_code ?? "",
+    gst_number: institution.gst_number ?? "",
     postal_code: institution.postal_code ?? "",
     city: institution.city,
     state: institution.state ?? "",
@@ -44,6 +51,12 @@ function toEditForm(institution: Institution): EditForm {
 }
 
 export default function AdminInstitutionsPage() {
+  const { can, me } = useAdminAuth();
+  const canUpdate = can("institutions_update");
+  const canDelete = can("institutions_delete");
+  // Approving / suspending an institution needs full control, not just update permission.
+  const canChangeStatus = me?.access_level === "full";
+  const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +150,27 @@ export default function AdminInstitutionsPage() {
     }
   }
 
+  async function changeApprovalStatus(
+    institution: Institution,
+    superadmin_status: InstitutionApprovalStatus
+  ) {
+    if (superadmin_status === institution.superadmin_status) return;
+    setChangingStatusId(institution.institution_id);
+    setRowError(null);
+    try {
+      const updated = await updateInstitutionAsAdmin(institution.institution_id, {
+        superadmin_status,
+      });
+      setInstitutions((prev) =>
+        prev.map((i) => (i.institution_id === institution.institution_id ? updated : i))
+      );
+    } catch (err) {
+      setRowError(extractErrorMessage(err, "Couldn't change the account status."));
+    } finally {
+      setChangingStatusId(null);
+    }
+  }
+
   async function handleDelete(institution: Institution) {
     setDeletingId(institution.institution_id);
     setRowError(null);
@@ -192,7 +226,7 @@ export default function AdminInstitutionsPage() {
         {!loading && !error && (
           <div className="overflow-hidden rounded-lg border border-line bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[1000px] text-left text-sm">
                 <thead>
                   <tr className="ledger-row bg-mint-50 text-xs uppercase tracking-wide text-ink-400">
                     <th className="px-4 py-3 font-medium">Institution</th>
@@ -200,7 +234,8 @@ export default function AdminInstitutionsPage() {
                     <th className="px-4 py-3 font-medium">Email</th>
                     <th className="px-4 py-3 font-medium">Location</th>
                     <th className="px-4 py-3 font-medium">Mobile</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">OTP</th>
+                    <th className="px-4 py-3 font-medium">Account status</th>
                     <th className="px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -228,6 +263,15 @@ export default function AdminInstitutionsPage() {
                             <VerifiedBadge verified={institution.otp_verified} />
                           </td>
                           <td className="px-4 py-3">
+                            <ApprovalStatusControl
+                              status={institution.superadmin_status}
+                              institutionName={institution.institution_name}
+                              canChange={canChangeStatus}
+                              changing={changingStatusId === institution.institution_id}
+                              onChange={(next) => changeApprovalStatus(institution, next)}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
                             {isConfirmingDelete ? (
                               <div className="flex items-center gap-2">
                                 <button
@@ -248,31 +292,35 @@ export default function AdminInstitutionsPage() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    isEditing ? cancelEdit() : startEdit(institution)
-                                  }
-                                  aria-label="Edit institution"
-                                  className="text-ink-400 hover:text-pine-800"
-                                >
-                                  {isEditing ? <X size={15} /> : <Pencil size={15} />}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteId(institution.institution_id)}
-                                  aria-label="Delete institution"
-                                  className="text-ink-400 hover:text-rose-600"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                                <FrozenControl allowed={canUpdate} label="Edit institution">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      isEditing ? cancelEdit() : startEdit(institution)
+                                    }
+                                    aria-label="Edit institution"
+                                    className="text-ink-400 hover:text-pine-800"
+                                  >
+                                    {isEditing ? <X size={15} /> : <Pencil size={15} />}
+                                  </button>
+                                </FrozenControl>
+                                <FrozenControl allowed={canDelete} label="Delete institution">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmingDeleteId(institution.institution_id)}
+                                    aria-label="Delete institution"
+                                    className="text-ink-400 hover:text-rose-600"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </FrozenControl>
                               </div>
                             )}
                           </td>
                         </tr>
                         {isEditing && editForm && (
                           <tr className="border-b border-line bg-mint-50/60">
-                            <td colSpan={7} className="px-4 py-5">
+                            <td colSpan={8} className="px-4 py-5">
                               <EditInstitutionForm
                                 form={editForm}
                                 saving={saving}
@@ -292,7 +340,7 @@ export default function AdminInstitutionsPage() {
                   })}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-ink-400">
+                      <td colSpan={8} className="px-5 py-10 text-center text-ink-400">
                         {query ? "No institutions match your search." : "No institutions yet."}
                       </td>
                     </tr>
@@ -339,6 +387,22 @@ function EditInstitutionForm({
           required
           value={form.name}
           onChange={(e) => onChange("name", e.target.value)}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Institutional code"
+          name="institutional_code"
+          required
+          value={form.institutional_code}
+          onChange={(e) => onChange("institutional_code", e.target.value)}
+        />
+        <Field
+          label="GST number"
+          name="gst_number"
+          required
+          value={form.gst_number}
+          onChange={(e) => onChange("gst_number", e.target.value.toUpperCase())}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
