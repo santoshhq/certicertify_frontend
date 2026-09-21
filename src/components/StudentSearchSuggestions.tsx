@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, SearchX } from "lucide-react";
 import clsx from "clsx";
 import { suggestStudents } from "../lib/students";
 import type { StudentSuggestion } from "../lib/students";
@@ -25,6 +25,9 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 export function useStudentSuggestions(query: string, enabled: boolean) {
   const [items, setItems] = useState<StudentSuggestion[]>([]);
+  // The query the current `items` were fetched for; lets callers tell
+  // "resolved with nothing" apart from "still waiting on the debounce".
+  const [resolvedFor, setResolvedFor] = useState<string | null>(null);
   const requestId = useRef(0);
 
   const q = query.trim();
@@ -37,9 +40,15 @@ export function useStudentSuggestions(query: string, enabled: boolean) {
     const timer = setTimeout(async () => {
       try {
         const data = await suggestStudents(q, controller.signal);
-        if (id === requestId.current) setItems(data);
+        if (id === requestId.current) {
+          setItems(data);
+          setResolvedFor(q);
+        }
       } catch {
-        if (id === requestId.current) setItems([]);
+        if (id === requestId.current) {
+          setItems([]);
+          setResolvedFor(null);
+        }
       }
     }, DEBOUNCE_MS);
     return () => {
@@ -48,8 +57,16 @@ export function useStudentSuggestions(query: string, enabled: boolean) {
     };
   }, [q, active]);
 
-  return { items: active ? items : [] };
+  return {
+    items: active ? items : [],
+    empty: active && resolvedFor === q && items.length === 0,
+  };
 }
+
+// One grid template shared by the header row and every result row so the
+// columns line up: icon · certificate · roll · name · institution · course · batch.
+const ROW_GRID =
+  "grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 md:grid-cols-[2rem_minmax(0,1.35fr)_minmax(0,0.8fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1fr)_3.25rem] md:items-center md:gap-x-3 lg:gap-x-5";
 
 export function StudentSuggestionList({
   items,
@@ -58,6 +75,8 @@ export function StudentSuggestionList({
   listId,
   onHover,
   onPick,
+  noResults = false,
+  className,
 }: {
   items: StudentSuggestion[];
   query: string;
@@ -65,61 +84,120 @@ export function StudentSuggestionList({
   listId: string;
   onHover: (index: number) => void;
   onPick: (item: StudentSuggestion) => void;
+  /** Render the "nothing matched" state when `items` is empty. */
+  noResults?: boolean;
+  className?: string;
 }) {
-  if (items.length === 0) return null;
-  const q = normalizeKey(query);
+  if (items.length === 0 && !noResults) return null;
 
   return (
     <ul
       id={listId}
       role="listbox"
-      className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-line bg-white text-left shadow-[0_20px_50px_-20px_rgba(0,0,0,0.45)]"
+      aria-label="Matching student records"
+      className={clsx(
+        "animate-suggest-in overflow-hidden rounded-2xl border border-line bg-white text-left shadow-[0_18px_40px_-16px_rgba(4,51,46,0.35)]",
+        className
+      )}
     >
-      {items.map((item, index) => {
-        // Show whichever identifier the person is actually typing.
-        const matchedByCertificate =
-          !item.roll_no.toUpperCase().startsWith(q) && item.certificate_no?.toUpperCase().startsWith(q);
-        const primary = matchedByCertificate ? item.certificate_no : item.roll_no;
-        const secondary = matchedByCertificate ? item.roll_no : item.certificate_no;
-        const fullName = [item.student_name, item.surname_lastName].filter(Boolean).join(" ");
-        return (
+      {items.length === 0 ? (
+        <li
+          role="presentation"
+          className="flex items-center gap-3 px-4 py-4 text-sm text-ink-400"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper text-ink-400">
+            <SearchX size={15} />
+          </span>
+          No matching records found
+        </li>
+      ) : (
+        <>
           <li
-            key={item.student_id}
-            id={`${listId}-${index}`}
-            role="option"
-            aria-selected={index === activeIndex}
-            onMouseEnter={() => onHover(index)}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              onPick(item);
-            }}
+            role="presentation"
+            aria-hidden
             className={clsx(
-              "flex cursor-pointer items-start gap-3 border-b border-line px-4 py-3 last:border-0",
-              index === activeIndex ? "bg-mint-50" : "hover:bg-mint-50/60"
+              ROW_GRID,
+              "hidden border-b border-line bg-paper px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-400 md:grid"
             )}
           >
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint-100 text-pine-800">
-              <GraduationCap size={15} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-mono text-sm text-ink-900">
-                  <Highlight text={primary} query={query} />
-                </span>
-                {secondary && (
-                  <span className="font-mono text-xs text-ink-400">{secondary}</span>
-                )}
-              </span>
-              <span className="block truncate text-sm text-ink-900">{fullName || "—"}</span>
-              <span className="block truncate text-xs text-ink-400">
-                {[item.institution_name, item.course_or_Acadamic, item.batch_year && `Batch ${item.batch_year}`]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </span>
+            <span />
+            <span>Certificate no.</span>
+            <span>Roll no.</span>
+            <span>Student</span>
+            <span>Institution</span>
+            <span>Course</span>
+            <span className="text-right">Batch</span>
           </li>
-        );
-      })}
+
+          {items.map((item, index) => {
+            const fullName =
+              [item.student_name, item.surname_lastName].filter(Boolean).join(" ") || "—";
+            const meta = [item.institution_name, item.course_or_Acadamic, item.batch_year]
+              .filter(Boolean)
+              .join(" • ");
+            const active = index === activeIndex;
+            return (
+              <li
+                key={item.student_id}
+                id={`${listId}-${index}`}
+                role="option"
+                aria-selected={active}
+                onMouseEnter={() => onHover(index)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onPick(item);
+                }}
+                className={clsx(
+                  ROW_GRID,
+                  "cursor-pointer border-b border-line px-4 py-2.5 transition-colors duration-100 last:border-0 md:py-2",
+                  active ? "bg-mint-50" : "hover:bg-mint-50/60"
+                )}
+              >
+                <span
+                  className={clsx(
+                    "row-span-3 mt-0.5 flex h-8 w-8 items-center justify-center self-start rounded-full bg-mint-100 text-pine-800 md:row-span-1 md:mt-0 md:self-center",
+                    active && "bg-sage-200"
+                  )}
+                  aria-hidden
+                >
+                  <GraduationCap size={15} />
+                </span>
+
+                {/* Certificate number — the primary identifier */}
+                <span className="truncate font-mono text-sm font-medium text-ink-900">
+                  <Highlight text={item.certificate_no || "—"} query={query} />
+                </span>
+
+                <span className="hidden truncate font-mono text-[13px] text-ink-700 md:block">
+                  <Highlight text={item.roll_no} query={query} />
+                </span>
+
+                <span className="truncate text-sm text-ink-900 md:text-[13px] md:font-medium">
+                  {fullName}
+                </span>
+
+                <span className="hidden truncate text-xs text-ink-400 md:block">
+                  {item.institution_name || "—"}
+                </span>
+                <span className="hidden truncate text-xs text-ink-400 md:block">
+                  {item.course_or_Acadamic || "—"}
+                </span>
+                <span className="hidden truncate text-right text-xs tabular-nums text-ink-400 md:block">
+                  {item.batch_year || "—"}
+                </span>
+
+                {/* Compact third line on mobile only */}
+                <span className="truncate text-xs text-ink-400 md:hidden">
+                  <span className="font-mono">
+                    <Highlight text={item.roll_no} query={query} />
+                  </span>
+                  {meta && ` • ${meta}`}
+                </span>
+              </li>
+            );
+          })}
+        </>
+      )}
     </ul>
   );
 }

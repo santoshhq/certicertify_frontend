@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { Logo } from "../Logo";
+import { ContactUsLink } from "../ContactUsLink";
 import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 
 const NAV_ITEMS = [
@@ -48,6 +49,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           {label}
         </NavLink>
       ))}
+      <ContactUsLink onNavigate={onNavigate} />
     </nav>
   );
 }

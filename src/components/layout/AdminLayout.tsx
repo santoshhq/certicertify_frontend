@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Logo } from "../Logo";
+import { ContactUsLink } from "../ContactUsLink";
 import { useAdminAuth } from "../../context/AdminAuthContext";
 import type { AdminPermissionKey } from "../../types";
 
@@ -65,6 +66,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           </NavLink>
         )
       )}
+      <ContactUsLink onNavigate={onNavigate} />
     </nav>
   );
 }

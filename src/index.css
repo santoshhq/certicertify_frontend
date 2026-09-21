@@ -78,6 +78,22 @@
       0 0 0 1px var(--color-sage-300),
       0 0 0 4px var(--color-mint-100);
   }
+  /* Search suggestion dropdown: a 140ms fade + 4px drop. Uses `transform`,
+     which doesn't collide with Tailwind v4's `translate` utilities. */
+  .animate-suggest-in {
+    animation: suggest-in 140ms ease-out both;
+  }
+}
+
+@keyframes suggest-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

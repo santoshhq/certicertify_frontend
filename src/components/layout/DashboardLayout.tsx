@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "../Logo";
+import { ContactUsLink } from "../ContactUsLink";
 import { Button } from "../ui/Button";
 import { ApprovalBadge } from "../ui/Badge";
 import { useAuth } from "../../context/AuthContext";
@@ -63,6 +64,7 @@ function NavItems({ frozen, onNavigate }: { frozen: boolean; onNavigate?: () => 
           </NavLink>
         )
       )}
+      <ContactUsLink onNavigate={onNavigate} />
     </nav>
   );
 }

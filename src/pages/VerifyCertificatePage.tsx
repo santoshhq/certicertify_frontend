@@ -1,15 +1,7 @@
 import { useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
-import {
-  Search,
-  FileX,
-  ShieldX,
-  Check,
-  Building2,
-  GraduationCap,
-  FileCheck,
-} from "lucide-react";
+import { Search, FileX, ShieldX, Check } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { CertificateViewer } from "../components/CertificateViewer";
 import { UserMenu } from "../components/UserMenu";
@@ -47,12 +39,6 @@ function Detail({
   );
 }
 
-const INCLUDED = [
-  { icon: Building2, text: "The institution that issued it" },
-  { icon: GraduationCap, text: "Course, batch year, grade and year of passing" },
-  { icon: FileCheck, text: "The original certificate file" },
-];
-
 export default function VerifyCertificatePage() {
   const [rollNo, setRollNo] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
@@ -66,11 +52,14 @@ export default function VerifyCertificatePage() {
   const [inputFocused, setInputFocused] = useState(false);
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const { items: suggestions } = useStudentSuggestions(
+  const { items: suggestions, empty: noMatches } = useStudentSuggestions(
     rollNo,
     inputFocused && !suggestionsDismissed
   );
-  const showSuggestions = inputFocused && !suggestionsDismissed && suggestions.length > 0;
+  const suggestionsOpen = inputFocused && !suggestionsDismissed;
+  const showSuggestions = suggestionsOpen && suggestions.length > 0;
+  const showNoMatches = suggestionsOpen && noMatches;
+  const listboxOpen = showSuggestions || showNoMatches;
 
   function handleInputChange(value: string) {
     setRollNo(value);
@@ -91,6 +80,13 @@ export default function VerifyCertificatePage() {
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      if (listboxOpen) {
+        setSuggestionsDismissed(true);
+        setActiveIndex(-1);
+      }
+      return;
+    }
     if (!showSuggestions) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -101,9 +97,6 @@ export default function VerifyCertificatePage() {
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
       pickSuggestion(suggestions[activeIndex]);
-    } else if (e.key === "Escape") {
-      setSuggestionsDismissed(true);
-      setActiveIndex(-1);
     }
   }
 
@@ -141,44 +134,67 @@ export default function VerifyCertificatePage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-paper">
-      <section className="relative overflow-hidden bg-pine-950 text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-48 -top-64 h-[560px] w-[560px] rounded-full border-[18px] border-pine-900/70 sm:-right-28 lg:-right-16"
-        >
-          <div className="absolute inset-[64px] rounded-full border-[14px] border-pine-500/15" />
+      {/* Before a search the hero fills the viewport; afterwards it shrinks
+          to a banner above the result. */}
+      <section
+        className={`relative bg-pine-950 text-white ${
+          searched ? "" : "flex flex-1 flex-col"
+        }`}
+      >
+        {/* Decorative rings, clipped here (not on the section) so the
+            suggestion dropdown can extend below the hero. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -right-56 -top-72 h-[520px] w-[520px] rounded-full border-[16px] border-pine-900/60 sm:-right-32 sm:h-[560px] sm:w-[560px] sm:border-[18px] lg:-right-16">
+            <div className="absolute inset-[64px] rounded-full border-[14px] border-pine-500/10" />
+          </div>
         </div>
 
-        <header className="relative flex items-center justify-between px-4 py-4 sm:px-8">
+        <header className="relative z-10 flex items-center justify-between px-4 py-3.5 sm:px-8 sm:py-4">
           <UserMenu />
-          <Link to="/" className="flex items-center gap-2.5">
-            <Logo size={40} className="bg-white p-0.5" />
-            <span className="hidden leading-tight sm:block">
-              <span className="block font-display text-lg font-bold">CertiCertify</span>
-              <span className="block text-[11px] text-sage-300">Verify the authentications</span>
+          <Link
+            to="/"
+            className="flex items-center gap-3 rounded-full focus-visible:outline-offset-4"
+            aria-label="CertiCertify home"
+          >
+            <Logo
+              size={52}
+              className="bg-white p-1 shadow-[0_0_0_2px_rgba(255,255,255,0.14),0_6px_18px_-6px_rgba(0,0,0,0.5)]"
+            />
+            <span className="leading-tight">
+              <span className="block font-display text-[19px] font-bold tracking-tight sm:text-[21px]">
+                CertiCertify
+              </span>
+              <span className="mt-0.5 hidden text-[11px] font-medium text-sage-300 sm:block">
+                Verify the authentications
+              </span>
             </span>
           </Link>
           <span className="w-10" aria-hidden />
         </header>
 
-        <div className="relative mx-auto w-full max-w-3xl px-4 pb-14 pt-10 text-center sm:px-8 sm:pb-20 sm:pt-16">
-          <h1 className="font-display text-[32px] font-bold leading-[1.1] text-white sm:text-5xl">
+        <div
+          className={`relative z-20 mx-auto w-full max-w-3xl px-4 pb-16 pt-8 text-center sm:px-8 sm:pb-24 sm:pt-14 lg:pt-16 ${
+            searched ? "" : "flex flex-1 flex-col justify-center"
+          }`}
+        >
+          <h1 className="font-display text-[30px] font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[52px]">
             Is this certificate genuine?
           </h1>
-          <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-sage-300">
+          <p className="mx-auto mt-4 w-full max-w-lg text-[15px] leading-relaxed text-sage-300 sm:mt-5 sm:text-base">
             Type the roll number or certificate number printed on it. We check
             it against the record the institution published.
           </p>
 
           <form
             onSubmit={handleSubmit}
-            className="mx-auto mt-8 flex max-w-xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] sm:flex-row sm:rounded-full"
+            className="relative mx-auto mt-8 flex w-full max-w-2xl flex-col gap-2 rounded-2xl bg-white p-1.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)] ring-1 ring-white/10 transition-shadow focus-within:ring-2 focus-within:ring-pine-500/70 sm:mt-10 sm:flex-row sm:items-center sm:rounded-full"
           >
-            <label className="relative flex-1">
+            <label className="relative flex flex-1 items-center">
               <span className="sr-only">Roll number or certificate number</span>
               <Search
-                size={18}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"
+                size={20}
+                strokeWidth={2.25}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-pine-800"
               />
               <input
                 type="text"
@@ -187,31 +203,25 @@ export default function VerifyCertificatePage() {
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
                 onKeyDown={handleKeyDown}
-                placeholder="Roll number or Certificate number"
+                placeholder="Enter roll number or certificate number"
                 autoComplete="off"
+                spellCheck={false}
                 role="combobox"
-                aria-expanded={showSuggestions}
+                aria-autocomplete="list"
+                aria-expanded={listboxOpen}
                 aria-controls="student-suggestions"
                 aria-activedescendant={
-                  activeIndex >= 0 ? `student-suggestions-${activeIndex}` : undefined
+                  showSuggestions && activeIndex >= 0
+                    ? `student-suggestions-${activeIndex}`
+                    : undefined
                 }
-                className="w-full rounded-xl bg-transparent py-3 pl-11 pr-4 font-mono text-base text-ink-900 outline-none placeholder:font-sans placeholder:text-ink-400 sm:rounded-full"
+                className="h-12 w-full rounded-xl bg-transparent pl-12 pr-4 font-mono text-base text-ink-900 outline-none placeholder:font-sans placeholder:text-ink-400 sm:h-[52px] sm:rounded-full"
               />
-              {showSuggestions && (
-                <StudentSuggestionList
-                  items={suggestions}
-                  query={rollNo}
-                  activeIndex={activeIndex}
-                  listId="student-suggestions"
-                  onHover={setActiveIndex}
-                  onPick={pickSuggestion}
-                />
-              )}
             </label>
             <button
               type="submit"
               disabled={loading || !rollNo.trim()}
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#e35f00] px-7 py-3 text-base font-semibold text-white transition-colors hover:bg-[#c85300] disabled:cursor-not-allowed disabled:bg-[#e35f00]/70 sm:rounded-full"
+              className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#e35f00] px-7 text-base font-semibold text-white transition-[background-color,transform] hover:bg-[#c85300] active:scale-[0.98] active:bg-[#b34a00] disabled:cursor-not-allowed disabled:bg-[#e35f00]/70 disabled:active:scale-100 sm:h-[52px] sm:rounded-full sm:px-8"
             >
               {loading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -220,30 +230,38 @@ export default function VerifyCertificatePage() {
               )}
               Check
             </button>
+
+            {listboxOpen && (
+              <StudentSuggestionList
+                items={suggestions}
+                noResults={showNoMatches}
+                query={rollNo}
+                activeIndex={activeIndex}
+                listId="student-suggestions"
+                onHover={setActiveIndex}
+                onPick={pickSuggestion}
+                className={`absolute left-0 right-0 top-full z-50 mt-1.5 ${
+                  // The result table needs more room than the search box on
+                  // tablet/desktop; the empty state stays box-width.
+                  showSuggestions
+                    ? "md:left-1/2 md:right-auto md:w-[min(56rem,calc(100vw-3rem))] md:-translate-x-1/2"
+                    : ""
+                }`}
+              />
+            )}
           </form>
+
+          <p className="mt-4 text-xs text-sage-300/80">
+            Matching records appear as you type — pick one to verify it instantly.
+          </p>
         </div>
       </section>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-8 sm:py-12">
-        {!searched && (
-          <div className="mx-auto max-w-3xl">
-            <p className="text-center text-sm text-ink-400">A verified record shows</p>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-3">
-              {INCLUDED.map(({ icon: Icon, text }) => (
-                <li
-                  key={text}
-                  className="flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-ink-700 sm:flex-col sm:items-start sm:gap-2.5 sm:py-5"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint-100 text-pine-800">
-                    <Icon size={18} strokeWidth={1.75} />
-                  </span>
-                  {text}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
+      <main
+        className={`mx-auto w-full max-w-5xl px-4 sm:px-8 ${
+          searched ? "flex-1 py-10 sm:py-12" : ""
+        }`}
+      >
         {loading && (
           <div className="flex items-center justify-center gap-3 py-16 text-sm text-ink-400">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-pine-700 border-t-transparent" />
