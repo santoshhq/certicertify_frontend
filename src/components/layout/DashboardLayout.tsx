@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   KeyRound,
   Building2,
-  CalendarClock,
+  Users,
   UploadCloud,
   LogOut,
   Lock,
@@ -23,8 +23,8 @@ import type { Institution } from "../../types";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/dashboard/add-students", label: "Add Students Data", icon: UploadCloud },
-  { to: "/dashboard/previous-data", label: "Previous data Year Wise", icon: CalendarClock },
+  { to: "/dashboard/previous-data", label: "Student Records", icon: Users },
+  { to: "/dashboard/add-students", label: "Add Student Records", icon: UploadCloud },
   { to: "/dashboard/change-password", label: "Change Password", icon: KeyRound },
   { to: "/dashboard/change-information", label: "Change Information", icon: Building2 },
 ];
@@ -141,7 +141,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="min-h-svh bg-paper lg:grid lg:grid-cols-[268px_1fr]">
       <aside className="hidden flex-col bg-pine-950 py-6 lg:sticky lg:top-0 lg:flex lg:h-svh lg:overflow-y-auto">
         <div className="mb-6 flex items-center gap-3 px-5">
-          <Logo size={34} className="bg-white p-1" />
+          <Logo size={40} />
           <span className="font-display text-lg font-bold text-white">
             CertiCertify
           </span>
@@ -165,7 +165,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex w-72 flex-col bg-pine-950 py-6">
             <div className="mb-6 flex items-center justify-between px-5">
               <div className="flex items-center gap-3">
-                <Logo size={30} className="bg-white p-1" />
+                <Logo size={36} />
                 <span className="font-display text-lg font-bold text-white">
                   CertiCertify
                 </span>
@@ -193,7 +193,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-svh flex-col">
         <header className="flex items-center justify-between border-b border-line bg-white px-5 py-4 lg:hidden">
           <div className="flex items-center gap-2">
-            <Logo size={30} />
+            <Logo size={34} />
             <span className="font-display text-base font-bold text-pine-950">
               CertiCertify
             </span>

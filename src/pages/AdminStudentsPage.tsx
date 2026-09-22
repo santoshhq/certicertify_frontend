@@ -280,7 +280,7 @@ export default function AdminStudentsPage() {
         {students.length} on record
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold text-pine-950">
-        Previous data Year Wise
+        Student Records
       </h1>
       <p className="mt-2 text-sm text-ink-400">
         Pick an institution to browse, edit, or add to its student roster.

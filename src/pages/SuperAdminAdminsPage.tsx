@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Pencil, ShieldCheck, Trash2, X, UserPlus, Wand2 } from "lucide-react";
+import { Pencil, Search, ShieldCheck, Trash2, X, UserPlus, Wand2 } from "lucide-react";
 import { createAdmin, getAdmins, updateAdmin, deleteAdmin } from "../lib/superadmin";
 import { extractErrorMessage } from "../lib/api";
 import { Alert } from "../components/ui/Alert";
@@ -90,6 +90,19 @@ export default function SuperAdminAdminsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  // Client-side filter by email or login ID (name too, as a convenience).
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return admins;
+    return admins.filter(
+      (a) =>
+        a.email.toLowerCase().includes(q) ||
+        a.admin_loginId.toLowerCase().includes(q) ||
+        a.admin_name.toLowerCase().includes(q)
+    );
+  }, [admins, query]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<AdminCreatePayload>(emptyCreateForm);
@@ -357,7 +370,29 @@ export default function SuperAdminAdminsPage() {
         </form>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <label className="relative block w-full sm:w-80">
+          <span className="sr-only">Search admins</span>
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+          />
+          <input
+            type="search"
+            placeholder="Search by email or login ID"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-md border border-line bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-pine-600 focus:ring-2 focus:ring-pine-600/15"
+          />
+        </label>
+        {!loading && !error && query && (
+          <p className="text-xs text-ink-400">
+            {filtered.length} of {admins.length} admin{admins.length === 1 ? "" : "s"}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4">
         {error && <Alert tone="error">{error}</Alert>}
         {rowError && (
           <div className="mb-4">
@@ -381,7 +416,7 @@ export default function SuperAdminAdminsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {admins.map((admin) => {
+                  {filtered.map((admin) => {
                     const isEditing = editingId === admin.admin_id;
                     const isConfirmingDelete = confirmingDeleteId === admin.admin_id;
                     return (
@@ -541,10 +576,10 @@ export default function SuperAdminAdminsPage() {
                       </Fragment>
                     );
                   })}
-                  {admins.length === 0 && (
+                  {filtered.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-5 py-10 text-center text-ink-400">
-                        No admins created yet.
+                        {query ? "No admins match your search." : "No admins created yet."}
                       </td>
                     </tr>
                   )}

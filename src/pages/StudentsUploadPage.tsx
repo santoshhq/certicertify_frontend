@@ -77,7 +77,7 @@ export default function StudentsUploadPage() {
         Roster upload
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold text-pine-950">
-        Add Students Data
+        Add Student Records
       </h1>
       <p className="mt-2 max-w-xl text-sm text-ink-400">
         {mode === "bulk"

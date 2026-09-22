@@ -25,7 +25,7 @@ export function AuthLayout({
           aria-hidden
         />
         <Link to="/" className="relative flex items-center gap-3">
-          <Logo size={44} className="rounded-full bg-white p-1" />
+          <Logo size={52} />
           <span className="font-display text-xl font-bold tracking-tight">
             CertiCertify
           </span>
@@ -48,7 +48,7 @@ export function AuthLayout({
       <main className="flex items-center justify-center px-6 py-14 sm:px-10">
         <div className="w-full max-w-sm">
           <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
-            <Logo size={38} />
+            <Logo size={44} />
             <span className="font-display text-lg font-bold text-pine-950">
               CertiCertify
             </span>

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Search, Pencil, Trash2, X, Plus } from "lucide-react";
+import { Search, Pencil, Trash2, X, Plus, ShieldAlert } from "lucide-react";
 import {
   getAllInstitutionsAsSuperAdmin,
   addInstitutionAsSuperAdmin,
@@ -90,6 +90,13 @@ export default function SuperAdminInstitutionsPage() {
   const [addForm, setAddForm] = useState<RegisterPayload>(emptyAddForm);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  const [pendingEmailChange, setPendingEmailChange] = useState<{
+    institution: Institution;
+    payload: SuperAdminInstitutionUpdatePayload;
+    oldEmail: string;
+    newEmail: string;
+  } | null>(null);
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -214,6 +221,26 @@ export default function SuperAdminInstitutionsPage() {
     if (payload.mobile_no) {
       payload.mobile_no = `+91${editForm.mobile_no}`;
     }
+    // Changing the login email is a security-sensitive action: the previous address
+    // is alerted before the account switches over, so ask the super admin first.
+    if (payload.email_id) {
+      setRowError(null);
+      setPendingEmailChange({
+        institution,
+        payload,
+        oldEmail: institution.email_id,
+        newEmail: payload.email_id,
+      });
+      return;
+    }
+
+    await commitEdit(institution, payload);
+  }
+
+  async function commitEdit(
+    institution: Institution,
+    payload: SuperAdminInstitutionUpdatePayload
+  ) {
     setSaving(true);
     setRowError(null);
     try {
@@ -227,6 +254,13 @@ export default function SuperAdminInstitutionsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function confirmEmailChange() {
+    if (!pendingEmailChange) return;
+    const { institution, payload } = pendingEmailChange;
+    setPendingEmailChange(null);
+    await commitEdit(institution, payload);
   }
 
   async function changeApprovalStatus(
@@ -282,6 +316,72 @@ export default function SuperAdminInstitutionsPage() {
           <Plus size={16} /> Add institution
         </Button>
       </div>
+
+      {pendingEmailChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-pine-950/45 px-4 py-8">
+          <div className="w-full max-w-lg rounded-xl border border-line bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                <ShieldAlert size={18} />
+              </span>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-wider text-rose-600">
+                  Security confirmation
+                </p>
+                <h2 className="mt-1 font-display text-xl font-bold text-pine-950">
+                  Are you willing to change this email address?
+                </h2>
+                <p className="mt-2 text-sm text-ink-400">
+                  This is the login email for{" "}
+                  <strong className="text-ink-700">
+                    {pendingEmailChange.institution.institution_name}
+                  </strong>
+                  . A security alert will be sent to the current address first, then the
+                  account will switch over to the new one.
+                </p>
+              </div>
+            </div>
+
+            <dl className="mt-5 rounded-lg border border-line bg-mint-50/60 px-4 py-3 text-sm">
+              <div className="flex items-baseline justify-between gap-4 border-b border-line py-2">
+                <dt className="font-mono text-xs uppercase tracking-wider text-ink-400">
+                  Current
+                </dt>
+                <dd className="break-all text-right text-ink-400 line-through">
+                  {pendingEmailChange.oldEmail}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4 py-2">
+                <dt className="font-mono text-xs uppercase tracking-wider text-ink-400">
+                  New
+                </dt>
+                <dd className="break-all text-right font-medium text-pine-800">
+                  {pendingEmailChange.newEmail}
+                </dd>
+              </div>
+            </dl>
+
+            <p className="mt-3 text-xs text-ink-400">
+              The alert goes to <strong>{pendingEmailChange.oldEmail}</strong> — not to the
+              new address. After this change the old address stops receiving account mail.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setPendingEmailChange(null)}
+                disabled={saving}
+              >
+                No, keep current email
+              </Button>
+              <Button type="button" onClick={confirmEmailChange} disabled={saving}>
+                Yes, change email
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-pine-950/45 px-4 py-8">

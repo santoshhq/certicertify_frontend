@@ -157,8 +157,8 @@ export default function VerifyCertificatePage() {
             aria-label="CertiCertify home"
           >
             <Logo
-              size={52}
-              className="bg-white p-1 shadow-[0_0_0_2px_rgba(255,255,255,0.14),0_6px_18px_-6px_rgba(0,0,0,0.5)]"
+              size={56}
+              className="shadow-[0_0_0_2px_rgba(255,255,255,0.14),0_6px_18px_-6px_rgba(0,0,0,0.5)]"
             />
             <span className="leading-tight">
               <span className="block font-display text-[19px] font-bold tracking-tight sm:text-[21px]">
@@ -329,7 +329,7 @@ export default function VerifyCertificatePage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-mint-50 px-5 py-4 sm:px-8">
               <div className="flex items-center gap-3">
                 <span className="relative shrink-0">
-                  <Logo size={48} className="border border-line bg-white p-0.5" />
+                  <Logo size={52} className="border border-line" />
                   <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-mint-50 bg-pine-500 text-white">
                     <Check size={12} strokeWidth={3.5} />
                   </span>
@@ -338,9 +338,7 @@ export default function VerifyCertificatePage() {
                   <p className="font-display text-lg font-bold leading-tight text-pine-950">
                     Verified by CertiCertify
                   </p>
-                  <p className="text-xs text-ink-400">
-                    Record published by {student.institution_name}
-                  </p>
+                  
                 </div>
               </div>
               <p className="text-xs text-ink-400">
@@ -389,7 +387,7 @@ export default function VerifyCertificatePage() {
       </main>
 
       <footer className="flex flex-col items-center gap-3 px-4 py-8 text-center text-xs text-ink-400 sm:px-8">
-        <Logo size={36} />
+        <Logo size={40} />
         <p>
           Records are published directly by the issuing institutions. CertiCertify
           does not create or alter them.
