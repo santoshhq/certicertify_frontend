@@ -3,29 +3,21 @@ import type { FormEvent } from "react";
 import { FileSpreadsheet, FileText, FileArchive, X, UploadCloud, UserPlus } from "lucide-react";
 import { SegmentedTab, SegmentedTabs } from "../components/ui/SegmentedTabs";
 import { AddSingleStudentForm } from "../components/AddSingleStudentForm";
+import { BatchYearField, currentIndianYear } from "../components/BatchYearField";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
-import { Field } from "../components/ui/Field";
 import { DropZone, isCertificateFile, isZipFile } from "../components/ui/DropZone";
 import { addStudent, uploadStudents } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
 import { UploadResults } from "../components/UploadResults";
 import type { StudentUploadResponse } from "../types";
 
-/** Current calendar year in Indian Standard Time, regardless of the browser's timezone. */
-function currentIndianYear() {
-  return new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-  }).format(new Date());
-}
-
 export default function StudentsUploadPage() {
   const [mode, setMode] = useState<"bulk" | "single">("bulk");
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [certificates, setCertificates] = useState<File[]>([]);
-  // Fixed to the current IST year; shown to the user but not editable.
-  const batchYear = currentIndianYear();
+  // Defaults to the current IST year; the pencil unlocks it for a custom year.
+  const [batchYear, setBatchYear] = useState(currentIndianYear());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<StudentUploadResponse | null>(null);
@@ -87,7 +79,10 @@ export default function StudentsUploadPage() {
 
       <div className="mt-6">
         <SegmentedTabs>
-          <SegmentedTab active={mode === "bulk"} onClick={() => setMode("bulk")} icon={FileSpreadsheet}>
+          <SegmentedTab active={mode === "bulk"} onClick={() => {
+            setMode("bulk");
+            setBatchYear(currentIndianYear());
+          }} icon={FileSpreadsheet}>
             Upload roster
           </SegmentedTab>
           <SegmentedTab active={mode === "single"} onClick={() => setMode("single")} icon={UserPlus}>
@@ -97,14 +92,10 @@ export default function StudentsUploadPage() {
       </div>
 
       <div className="mt-6 max-w-xs">
-        <Field
-          label="Batch year"
-          name="batch_year"
-          hint="Set automatically to the current year (IST)."
+        <BatchYearField
           value={batchYear}
-          readOnly
-          tabIndex={-1}
-          className="cursor-not-allowed bg-mint-50 text-ink-700 focus:border-line focus:ring-0"
+          onChange={setBatchYear}
+          editable={mode === "single"}
         />
       </div>
 

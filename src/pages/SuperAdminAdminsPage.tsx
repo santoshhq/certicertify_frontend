@@ -7,6 +7,7 @@ import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import { ToggleSwitch } from "../components/ui/ToggleSwitch";
@@ -118,6 +119,8 @@ export default function SuperAdminAdminsPage() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
+
+  const pendingDelete = admins.find((a) => a.admin_id === confirmingDeleteId) ?? null;
 
   async function load() {
     setLoading(true);
@@ -263,16 +266,37 @@ export default function SuperAdminAdminsPage() {
     try {
       await deleteAdmin(admin.admin_id);
       setAdmins((prev) => prev.filter((a) => a.admin_id !== admin.admin_id));
-      setConfirmingDeleteId(null);
     } catch (err) {
       setRowError(extractErrorMessage(err, "Couldn't delete this admin."));
     } finally {
       setDeletingId(null);
+      // Always close the dialog so a failure surfaces in the row error banner.
+      setConfirmingDeleteId(null);
     }
   }
 
   return (
     <div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this admin?"
+        description="This action will permanently remove the admin account and revoke its access to the dashboard."
+        details={[
+          { label: "Admin", value: pendingDelete?.admin_name },
+          { label: "Login ID", value: pendingDelete?.admin_loginId },
+          { label: "Email", value: pendingDelete?.email },
+        ]}
+        warning={{
+          title: "This cannot be undone.",
+          description:
+            "The admin will lose access immediately and their permissions will be permanently removed.",
+        }}
+        confirmLabel="Yes, delete"
+        loading={deletingId !== null}
+        onConfirm={() => pendingDelete && handleDelete(pendingDelete)}
+        onCancel={() => setConfirmingDeleteId(null)}
+      />
+
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-3xl font-bold text-pine-950">Admins</h1>
         <Button
@@ -418,7 +442,6 @@ export default function SuperAdminAdminsPage() {
                 <tbody>
                   {filtered.map((admin) => {
                     const isEditing = editingId === admin.admin_id;
-                    const isConfirmingDelete = confirmingDeleteId === admin.admin_id;
                     return (
                       <Fragment key={admin.admin_id}>
                         <tr className="ledger-row last:border-0">
@@ -453,44 +476,24 @@ export default function SuperAdminAdminsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            {isConfirmingDelete ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(admin)}
-                                  disabled={deletingId === admin.admin_id}
-                                  className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteId(null)}
-                                  className="text-xs text-ink-400 hover:underline"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => (isEditing ? cancelEdit() : startEdit(admin))}
-                                  aria-label="Edit admin"
-                                  className="text-ink-400 hover:text-pine-800"
-                                >
-                                  {isEditing ? <X size={15} /> : <Pencil size={15} />}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteId(admin.admin_id)}
-                                  aria-label="Delete admin"
-                                  className="text-ink-400 hover:text-rose-600"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => (isEditing ? cancelEdit() : startEdit(admin))}
+                                aria-label="Edit admin"
+                                className="text-ink-400 hover:text-pine-800"
+                              >
+                                {isEditing ? <X size={15} /> : <Pencil size={15} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingDeleteId(admin.admin_id)}
+                                aria-label="Delete admin"
+                                className="text-ink-400 hover:text-rose-600"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                         {isEditing && editForm && (

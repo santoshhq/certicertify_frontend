@@ -36,6 +36,7 @@ import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
 import { SelectField } from "../components/ui/SelectField";
 import { Field } from "../components/ui/Field";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { DropZone, isCertificateFile, isZipFile } from "../components/ui/DropZone";
 import { TablePager } from "../components/ui/TablePager";
 import type { PageSize } from "../components/ui/TablePager";
@@ -161,6 +162,9 @@ export default function AdminStudentsPage() {
     [students]
   );
 
+  const pendingDelete =
+    students.find((s) => s.student_id === confirmingDeleteId) ?? null;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return students.filter((s) => {
@@ -254,11 +258,12 @@ export default function AdminStudentsPage() {
     try {
       await deleteStudentAsAdmin(student.roll_no);
       setStudents((prev) => prev.filter((s) => s.student_id !== student.student_id));
-      setConfirmingDeleteId(null);
     } catch (err) {
       setRowError(extractErrorMessage(err, "Couldn't delete this student."));
     } finally {
       setDeletingId(null);
+      // Always close the dialog so a failure surfaces in the row error banner.
+      setConfirmingDeleteId(null);
     }
   }
 
@@ -276,6 +281,26 @@ export default function AdminStudentsPage() {
 
   return (
     <div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this student record?"
+        description="This action will permanently remove the student record and its certificate from the system."
+        details={[
+          { label: "Student", value: pendingDelete?.student_name },
+          { label: "Roll no", value: pendingDelete?.roll_no },
+          { label: "Certificate no", value: pendingDelete?.certificate_no },
+        ]}
+        warning={{
+          title: "This cannot be undone.",
+          description:
+            "Once deleted, the student record and its issued certificate will be permanently lost and can no longer be verified.",
+        }}
+        confirmLabel="Yes, delete"
+        loading={deletingId !== null}
+        onConfirm={() => pendingDelete && handleDelete(pendingDelete)}
+        onCancel={() => setConfirmingDeleteId(null)}
+      />
+
       <p className="font-mono text-xs uppercase tracking-wider text-amber-600">
         {students.length} on record
       </p>
@@ -452,7 +477,6 @@ export default function AdminStudentsPage() {
                     <tbody>
                       {visible.map((student) => {
                         const isEditing = editingId === student.student_id;
-                        const isConfirmingDelete = confirmingDeleteId === student.student_id;
                         return (
                           <tr key={student.student_id} className="ledger-row last:border-0 align-top">
                             <td className="px-4 py-3">
@@ -601,48 +625,28 @@ export default function AdminStudentsPage() {
                                   )}
                                 </td>
                                 <td className="px-4 py-3">
-                                  {isConfirmingDelete ? (
-                                    <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <FrozenControl allowed={canUpdate} label="Edit student">
                                       <button
                                         type="button"
-                                        onClick={() => handleDelete(student)}
-                                        disabled={deletingId === student.student_id}
-                                        className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50"
+                                        onClick={() => startEdit(student)}
+                                        aria-label="Edit student"
+                                        className="text-ink-400 hover:text-pine-800"
                                       >
-                                        Confirm
+                                        <Pencil size={15} />
                                       </button>
+                                    </FrozenControl>
+                                    <FrozenControl allowed={canDelete} label="Delete student">
                                       <button
                                         type="button"
-                                        onClick={() => setConfirmingDeleteId(null)}
-                                        className="text-xs text-ink-400 hover:underline"
+                                        onClick={() => setConfirmingDeleteId(student.student_id)}
+                                        aria-label="Delete student"
+                                        className="text-ink-400 hover:text-rose-600"
                                       >
-                                        Cancel
+                                        <Trash2 size={15} />
                                       </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-3">
-                                      <FrozenControl allowed={canUpdate} label="Edit student">
-                                        <button
-                                          type="button"
-                                          onClick={() => startEdit(student)}
-                                          aria-label="Edit student"
-                                          className="text-ink-400 hover:text-pine-800"
-                                        >
-                                          <Pencil size={15} />
-                                        </button>
-                                      </FrozenControl>
-                                      <FrozenControl allowed={canDelete} label="Delete student">
-                                        <button
-                                          type="button"
-                                          onClick={() => setConfirmingDeleteId(student.student_id)}
-                                          aria-label="Delete student"
-                                          className="text-ink-400 hover:text-rose-600"
-                                        >
-                                          <Trash2 size={15} />
-                                        </button>
-                                      </FrozenControl>
-                                    </div>
-                                  )}
+                                    </FrozenControl>
+                                  </div>
                                 </td>
                               </>
                             )}

@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import type { ButtonHTMLAttributes } from "react";
 import clsx from "clsx";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "destructive";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -17,6 +17,8 @@ const variantClasses: Record<Variant, string> = {
   ghost: "bg-transparent text-pine-800 hover:bg-mint-100 border border-transparent",
   danger:
     "bg-white text-rose-600 hover:bg-rose-100 border border-rose-600",
+  destructive:
+    "bg-rose-600 text-white border border-rose-600 hover:bg-rose-700 hover:border-rose-700 active:bg-rose-700 disabled:bg-rose-600/60 disabled:border-transparent shadow-sm",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -28,6 +30,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={clsx(
           "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium",
           "transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-70",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          variant === "danger" || variant === "destructive"
+            ? "focus-visible:ring-rose-600"
+            : "focus-visible:ring-pine-600",
           variantClasses[variant],
           className
         )}

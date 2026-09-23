@@ -3,9 +3,9 @@ import type { FormEvent } from "react";
 import { FileSpreadsheet, FileText, FileArchive, X, UploadCloud, UserPlus } from "lucide-react";
 import { SegmentedTab, SegmentedTabs } from "../components/ui/SegmentedTabs";
 import { AddSingleStudentForm } from "../components/AddSingleStudentForm";
+import { BatchYearField, currentIndianYear } from "../components/BatchYearField";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
-import { Field } from "../components/ui/Field";
 import { SelectField } from "../components/ui/SelectField";
 import { DropZone, isCertificateFile, isZipFile } from "../components/ui/DropZone";
 import { addStudentAsAdmin, getAllInstitutionsAsAdmin, uploadStudentsAsAdmin } from "../lib/admin";
@@ -14,14 +14,6 @@ import { UploadResults } from "../components/UploadResults";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { NoPermissionNote } from "../components/FrozenControl";
 import type { Institution, StudentUploadResponse } from "../types";
-
-/** Current calendar year in Indian Standard Time, regardless of the browser's timezone. */
-function currentIndianYear() {
-  return new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-  }).format(new Date());
-}
 
 export default function AdminStudentsUploadPage() {
   const { can } = useAdminAuth();
@@ -126,7 +118,10 @@ export default function AdminStudentsUploadPage() {
 
       <div className="mt-6">
         <SegmentedTabs>
-          <SegmentedTab active={mode === "bulk"} onClick={() => setMode("bulk")} icon={FileSpreadsheet}>
+          <SegmentedTab active={mode === "bulk"} onClick={() => {
+            setMode("bulk");
+            setBatchYear(currentIndianYear());
+          }} icon={FileSpreadsheet}>
             Upload roster
           </SegmentedTab>
           <SegmentedTab active={mode === "single"} onClick={() => setMode("single")} icon={UserPlus}>
@@ -150,12 +145,11 @@ export default function AdminStudentsUploadPage() {
           disabled={institutions.length === 0}
           required
         />
-        <Field
-          label="Batch year"
-          name="batch_year"
-          required
+        <BatchYearField
           value={batchYear}
-          onChange={(e) => setBatchYear(e.target.value)}
+          onChange={setBatchYear}
+          disabled={!canCreate}
+          editable={mode === "single"}
         />
       </div>
       </fieldset>

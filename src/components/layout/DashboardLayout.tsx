@@ -15,7 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "../Logo";
-import { ContactUsLink } from "../ContactUsLink";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { SupportWhatsAppButton } from "../SupportWhatsAppButton";
 import { Button } from "../ui/Button";
 import { ApprovalBadge } from "../ui/Badge";
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +27,7 @@ const NAV_ITEMS = [
   { to: "/dashboard/previous-data", label: "Student Records", icon: Users },
   { to: "/dashboard/add-students", label: "Add Student Records", icon: UploadCloud },
   { to: "/dashboard/change-password", label: "Change Password", icon: KeyRound },
-  { to: "/dashboard/change-information", label: "Change Information", icon: Building2 },
+  { to: "/dashboard/change-information", label: "Profile", icon: Building2 },
 ];
 
 function NavItems({ frozen, onNavigate }: { frozen: boolean; onNavigate?: () => void }) {
@@ -64,7 +65,6 @@ function NavItems({ frozen, onNavigate }: { frozen: boolean; onNavigate?: () => 
           </NavLink>
         )
       )}
-      <ContactUsLink onNavigate={onNavigate} />
     </nav>
   );
 }
@@ -128,17 +128,33 @@ function LogoutButton({ onClick, className }: { onClick: () => void; className?:
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { institution, logout } = useAuth();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const frozen = institution?.superadmin_status !== "Approved";
 
-  function handleLogout() {
+  function confirmLogout() {
+    setConfirmingLogout(false);
     logout();
     navigate("/", { replace: true });
   }
 
   return (
     <div className="min-h-svh bg-paper lg:grid lg:grid-cols-[268px_1fr]">
+      <ConfirmDialog
+        open={confirmingLogout}
+        tone="brand"
+        icon={<LogOut size={20} />}
+        iconPlacement="inline"
+        confirmIcon={<LogOut size={15} />}
+        title="Are you sure you want to log out?"
+        description="You will be signed out of your institution dashboard and returned to the login page."
+        confirmLabel="Yes, log out"
+        cancelLabel="No, stay signed in"
+        onConfirm={confirmLogout}
+        onCancel={() => setConfirmingLogout(false)}
+      />
+
       <aside className="hidden flex-col bg-pine-950 py-6 lg:sticky lg:top-0 lg:flex lg:h-svh lg:overflow-y-auto">
         <div className="mb-6 flex items-center gap-3 px-5">
           <Logo size={40} />
@@ -156,7 +172,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               {institution?.email_id ?? ""}
             </p>
           </div>
-          <LogoutButton onClick={handleLogout} className="mt-4 w-full" />
+          <LogoutButton onClick={() => setConfirmingLogout(true)} className="mt-4 w-full" />
         </div>
       </aside>
 
@@ -180,7 +196,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
             <NavItems frozen={frozen} onNavigate={() => setMobileOpen(false)} />
             <div className="mt-auto border-t border-white/10 px-5 pt-4">
-              <LogoutButton onClick={handleLogout} className="w-full" />
+              <LogoutButton onClick={() => setConfirmingLogout(true)} className="w-full" />
             </div>
           </div>
           <div
@@ -210,6 +226,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           {frozen && institution ? <ApprovalGate institution={institution} /> : children}
         </main>
       </div>
+
+      <SupportWhatsAppButton />
     </div>
   );
 }

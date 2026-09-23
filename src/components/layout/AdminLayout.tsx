@@ -14,7 +14,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Logo } from "../Logo";
-import { ContactUsLink } from "../ContactUsLink";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { SupportWhatsAppButton } from "../SupportWhatsAppButton";
 import { useAdminAuth } from "../../context/AdminAuthContext";
 import type { AdminPermissionKey } from "../../types";
 
@@ -66,7 +67,6 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           </NavLink>
         )
       )}
-      <ContactUsLink onNavigate={onNavigate} />
     </nav>
   );
 }
@@ -87,16 +87,32 @@ function LogoutButton({ onClick, className }: { onClick: () => void; className?:
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const { adminName, adminLoginId, logout } = useAdminAuth();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  function handleLogout() {
+  function confirmLogout() {
+    setConfirmingLogout(false);
     logout();
     navigate("/admin-login", { replace: true });
   }
 
   return (
     <div className="min-h-svh bg-paper lg:grid lg:grid-cols-[268px_1fr]">
+      <ConfirmDialog
+        open={confirmingLogout}
+        tone="brand"
+        icon={<LogOut size={20} />}
+        iconPlacement="inline"
+        confirmIcon={<LogOut size={15} />}
+        title="Are you sure you want to log out?"
+        description="You will be signed out of the admin dashboard and returned to the login page."
+        confirmLabel="Yes, log out"
+        cancelLabel="No, stay signed in"
+        onConfirm={confirmLogout}
+        onCancel={() => setConfirmingLogout(false)}
+      />
+
       <aside className="hidden flex-col bg-pine-950 py-6 lg:sticky lg:top-0 lg:flex lg:h-svh lg:overflow-y-auto">
         <div className="mb-2 flex items-center gap-3 px-5">
           <Logo size={40} />
@@ -117,7 +133,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               {adminName ?? adminLoginId ?? ""}
             </p>
           </div>
-          <LogoutButton onClick={handleLogout} className="mt-4 w-full" />
+          <LogoutButton onClick={() => setConfirmingLogout(true)} className="mt-4 w-full" />
         </div>
       </aside>
 
@@ -141,7 +157,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </div>
             <NavItems onNavigate={() => setMobileOpen(false)} />
             <div className="mt-auto border-t border-white/10 px-5 pt-4">
-              <LogoutButton onClick={handleLogout} className="w-full" />
+              <LogoutButton onClick={() => setConfirmingLogout(true)} className="w-full" />
             </div>
           </div>
           <div
@@ -171,6 +187,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <SupportWhatsAppButton />
     </div>
   );
 }

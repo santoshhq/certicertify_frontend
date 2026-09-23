@@ -97,7 +97,7 @@ export default function ChangeInformationPage() {
             Institution profile
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold text-pine-950">
-            Change Information
+            Profile
           </h1>
         </div>
         <VerifiedBadge verified={institution.otp_verified} />

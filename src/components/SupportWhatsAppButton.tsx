@@ -1,9 +1,9 @@
-// Support line reachable on WhatsApp (+91 90526 33999). Shown at the bottom
-// of every dashboard sidebar (institution, admin, superadmin).
+// Support line reachable on WhatsApp (+91 90526 33999). Rendered as a floating
+// action button on every dashboard (institution, admin, superadmin).
 const SUPPORT_WHATSAPP_NUMBER = "919052633999";
 const SUPPORT_WHATSAPP_URL = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}`;
 
-function WhatsAppIcon({ size = 17 }: { size?: number }) {
+function WhatsAppIcon({ size = 26 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -17,23 +17,21 @@ function WhatsAppIcon({ size = 17 }: { size?: number }) {
   );
 }
 
-/** Sidebar "Contact us" row that opens a WhatsApp chat with support. */
-export function ContactUsLink({ onNavigate }: { onNavigate?: () => void }) {
+/** Floating WhatsApp button, bottom-right, that opens a chat with support. */
+export function SupportWhatsAppButton() {
   return (
-    <div className="mt-2 border-t border-white/10 pt-2">
-      <a
-        href={SUPPORT_WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm text-sage-300 transition-colors hover:bg-white/5 hover:text-white"
-      >
-        <span className="text-[#25D366]">
-          <WhatsAppIcon />
-        </span>
-        <span className="flex-1">Contact us</span>
-        <span className="text-[11px] text-sage-300/60">WhatsApp</span>
-      </a>
-    </div>
+    <a
+      href={SUPPORT_WHATSAPP_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Contact support on WhatsApp"
+      aria-label="Contact support on WhatsApp"
+      className="group fixed bottom-5 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-[transform,background-color] hover:bg-[#1eb855] active:scale-95 sm:bottom-7 sm:right-7"
+    >
+      <WhatsAppIcon />
+      <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-md bg-pine-950 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 sm:block">
+        Contact us
+      </span>
+    </a>
   );
 }

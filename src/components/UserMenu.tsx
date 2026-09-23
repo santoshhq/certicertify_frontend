@@ -8,11 +8,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 export function UserMenu() {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,14 +27,33 @@ export function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickAway);
   }, []);
 
-  function handleLogout() {
+  function askLogout() {
     setOpen(false);
+    setConfirmingLogout(true);
+  }
+
+  function confirmLogout() {
+    setConfirmingLogout(false);
     logout();
     navigate("/", { replace: true });
   }
 
   return (
     <div ref={containerRef} className="relative">
+      <ConfirmDialog
+        open={confirmingLogout}
+        tone="brand"
+        icon={<LogOut size={20} />}
+        iconPlacement="inline"
+        confirmIcon={<LogOut size={15} />}
+        title="Are you sure you want to log out?"
+        description="You will be signed out of your institution account on this device."
+        confirmLabel="Yes, log out"
+        cancelLabel="No, stay signed in"
+        onConfirm={confirmLogout}
+        onCancel={() => setConfirmingLogout(false)}
+      />
+
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -57,7 +78,7 @@ export function UserMenu() {
               </Link>
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={askLogout}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-100"
               >
                 <LogOut size={16} />

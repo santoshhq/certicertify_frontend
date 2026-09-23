@@ -12,6 +12,7 @@ import { Alert } from "../components/ui/Alert";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PhoneField } from "../components/ui/PhoneField";
 import { PasswordField } from "../components/ui/PasswordField";
 import { SelectField } from "../components/ui/SelectField";
@@ -117,6 +118,9 @@ export default function SuperAdminInstitutionsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const pendingDelete =
+    institutions.find((i) => i.institution_id === confirmingDeleteId) ?? null;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -292,11 +296,12 @@ export default function SuperAdminInstitutionsPage() {
       setInstitutions((prev) =>
         prev.filter((i) => i.institution_id !== institution.institution_id)
       );
-      setConfirmingDeleteId(null);
     } catch (err) {
       setRowError(extractErrorMessage(err, "Couldn't delete this institution."));
     } finally {
       setDeletingId(null);
+      // Always close the dialog so a failure surfaces in the row error banner.
+      setConfirmingDeleteId(null);
     }
   }
 
@@ -316,6 +321,26 @@ export default function SuperAdminInstitutionsPage() {
           <Plus size={16} /> Add institution
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this institution?"
+        description="This action will permanently remove the institution and all its associated data from the system."
+        details={[
+          { label: "Institution", value: pendingDelete?.institution_name },
+          { label: "Contact", value: pendingDelete?.name },
+          { label: "Email", value: pendingDelete?.email_id },
+        ]}
+        warning={{
+          title: "This cannot be undone.",
+          description:
+            "Once deleted, the institution and all related records, including students, certificates, and settings, will be permanently lost.",
+        }}
+        confirmLabel="Yes, delete"
+        loading={deletingId !== null}
+        onConfirm={() => pendingDelete && handleDelete(pendingDelete)}
+        onCancel={() => setConfirmingDeleteId(null)}
+      />
 
       {pendingEmailChange && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-pine-950/45 px-4 py-8">
@@ -464,7 +489,6 @@ export default function SuperAdminInstitutionsPage() {
                 <tbody>
                   {filtered.map((institution) => {
                     const isEditing = editingId === institution.institution_id;
-                    const isConfirmingDelete = confirmingDeleteId === institution.institution_id;
                     return (
                       <Fragment key={institution.institution_id}>
                         <tr className="ledger-row last:border-0">
@@ -494,46 +518,26 @@ export default function SuperAdminInstitutionsPage() {
                             />
                           </td>
                           <td className="px-4 py-3">
-                            {isConfirmingDelete ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(institution)}
-                                  disabled={deletingId === institution.institution_id}
-                                  className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteId(null)}
-                                  className="text-xs text-ink-400 hover:underline"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    isEditing ? cancelEdit() : startEdit(institution)
-                                  }
-                                  aria-label="Edit institution"
-                                  className="text-ink-400 hover:text-pine-800"
-                                >
-                                  {isEditing ? <X size={15} /> : <Pencil size={15} />}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteId(institution.institution_id)}
-                                  aria-label="Delete institution"
-                                  className="text-ink-400 hover:text-rose-600"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  isEditing ? cancelEdit() : startEdit(institution)
+                                }
+                                aria-label="Edit institution"
+                                className="text-ink-400 hover:text-pine-800"
+                              >
+                                {isEditing ? <X size={15} /> : <Pencil size={15} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingDeleteId(institution.institution_id)}
+                                aria-label="Delete institution"
+                                className="text-ink-400 hover:text-rose-600"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                         {isEditing && editForm && (

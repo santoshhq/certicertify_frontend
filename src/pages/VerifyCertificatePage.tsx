@@ -3,6 +3,7 @@ import type { FormEvent, KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { Search, FileX, ShieldX, Check } from "lucide-react";
 import { Logo } from "../components/Logo";
+import amplusLogo from "../assets/amplus_grp_logo.png";
 import { CertificateViewer } from "../components/CertificateViewer";
 import { UserMenu } from "../components/UserMenu";
 import { getStudent } from "../lib/students";
@@ -338,7 +339,7 @@ export default function VerifyCertificatePage() {
                   <p className="font-display text-lg font-bold leading-tight text-pine-950">
                     Verified by CertiCertify
                   </p>
-                  
+
                 </div>
               </div>
               <p className="text-xs text-ink-400">
@@ -386,12 +387,25 @@ export default function VerifyCertificatePage() {
         )}
       </main>
 
-      <footer className="flex flex-col items-center gap-3 px-4 py-8 text-center text-xs text-ink-400 sm:px-8">
-        <Logo size={40} />
-        <p>
-          Records are published directly by the issuing institutions. CertiCertify
-          does not create or alter them.
-        </p>
+      <footer className="mt-auto border-t border-line bg-white">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-center px-4 py-7 sm:px-8">
+          <a
+            href="https://amplus.in/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2.5 rounded-full transition-opacity hover:opacity-70 focus-visible:outline-offset-4"
+          >
+            <img
+              src={amplusLogo}
+              alt=""
+              className="h-9 w-auto"
+              loading="lazy"
+            />
+            <span className="text-xs text-ink-400">
+              An initiative by Amplus Group
+            </span>
+          </a>
+        </div>
       </footer>
     </div>
   );
