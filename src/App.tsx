@@ -25,7 +25,6 @@ import AdminStudentsPage from "./pages/AdminStudentsPage";
 import AdminStudentsUploadPage from "./pages/AdminStudentsUploadPage";
 import AdminStudentStatsPage from "./pages/AdminStudentStatsPage";
 import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
-import SuperAdminRegisterPage from "./pages/SuperAdminRegisterPage";
 import SuperAdminVerifyOtpPage from "./pages/SuperAdminVerifyOtpPage";
 import SuperAdminForgotPasswordPage from "./pages/SuperAdminForgotPasswordPage";
 import SuperAdminDashboardPage from "./pages/SuperAdminDashboardPage";
@@ -104,7 +103,6 @@ function AppRoutes() {
 
       {/* Super admin */}
       <Route path="/superadmin-login" element={<SuperAdminLoginPage />} />
-      <Route path="/superadmin-register" element={<SuperAdminRegisterPage />} />
       <Route path="/superadmin-verify-otp" element={<SuperAdminVerifyOtpPage />} />
       <Route path="/superadmin-forgot-password" element={<SuperAdminForgotPasswordPage />} />
       <Route

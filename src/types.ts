@@ -142,13 +142,6 @@ export interface SuperAdminProfile {
   role: string;
 }
 
-export interface SuperAdminRegisterPayload {
-  fullname: string;
-  email: string;
-  mobilenumber: string;
-  password: string;
-}
-
 export type SuperAdminInstitutionUpdatePayload = Partial<
   Pick<
     RegisterPayload,

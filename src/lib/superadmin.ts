@@ -12,18 +12,9 @@ import type {
   RegisterPayload,
   SuperAdminInstitutionUpdatePayload,
   SuperAdminProfile,
-  SuperAdminRegisterPayload,
 } from "../types";
 
 // -- Superadmin account -----------------------------------------------------
-
-export async function registerSuperAdmin(payload: SuperAdminRegisterPayload) {
-  const { data } = await api.post<{ message: string }>(
-    "/superadmin/register",
-    payload
-  );
-  return data;
-}
 
 export async function verifySuperAdminOtp(email: string, otp: string) {
   const { data } = await api.post<{ message: string }>(

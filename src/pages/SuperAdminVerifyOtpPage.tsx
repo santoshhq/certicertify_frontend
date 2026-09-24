@@ -40,9 +40,9 @@ export default function SuperAdminVerifyOtpPage() {
       subtitle="Enter the 6-digit code we emailed to you. It expires after five minutes."
       footer={
         <>
-          Wrong account?{" "}
-          <Link to="/superadmin-register" className="font-medium text-pine-800 hover:underline">
-            Register again
+          Already verified?{" "}
+          <Link to="/superadmin-login" className="font-medium text-pine-800 hover:underline">
+            Sign in
           </Link>
         </>
       }

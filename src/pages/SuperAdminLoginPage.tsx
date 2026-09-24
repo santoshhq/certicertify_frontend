@@ -49,12 +49,6 @@ export default function SuperAdminLoginPage() {
       footer={
         <>
           <p>
-            No account yet?{" "}
-            <Link to="/superadmin-register" className="font-medium text-pine-800 hover:underline">
-              Register
-            </Link>
-          </p>
-          <p className="mt-2">
             <Link to="/superadmin-forgot-password" className="font-medium text-pine-800 hover:underline">
               Forgot password?
             </Link>
