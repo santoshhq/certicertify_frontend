@@ -131,6 +131,19 @@ export async function updateStudentAsAdmin(
   return data;
 }
 
+/** Replaces one specific student's certificate; the old file is deleted server-side. */
+export async function replaceStudentCertificateAsAdmin(studentId: string, certificate: File) {
+  const form = new FormData();
+  form.append("certificate", certificate);
+
+  const { data } = await api.patch<Student>(
+    `/admin/students/id/${encodeURIComponent(studentId)}/certificate`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return data;
+}
+
 export async function deleteStudentAsAdmin(rollNoCertificateNo: string) {
   await api.delete(`/admin/students/${encodeURIComponent(rollNoCertificateNo)}`);
 }

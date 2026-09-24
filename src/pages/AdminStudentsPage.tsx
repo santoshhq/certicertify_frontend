@@ -20,10 +20,12 @@ import {
   updateStudentAsAdmin,
   deleteStudentAsAdmin,
   uploadStudentsAsAdmin,
+  replaceStudentCertificateAsAdmin,
 } from "../lib/admin";
 import type { StudentUpdatePayload } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
 import { UploadResults } from "../components/UploadResults";
+import { CertificateCell, useCertificateReplace } from "../components/CertificateCell";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { FrozenControl, NO_PERMISSION_TITLE, NoPermissionNote } from "../components/FrozenControl";
 import {
@@ -112,6 +114,7 @@ export default function AdminStudentsPage() {
   const [addOpen, setAddOpen] = useState(false);
 
   const bulk = useBulkStudentUpdate(students, setStudents, updateStudentAsAdmin);
+  const certificate = useCertificateReplace(setStudents, replaceStudentCertificateAsAdmin);
 
   const selectedInstitution = institutions.find((i) => i.institution_id === institutionId);
 
@@ -435,6 +438,16 @@ export default function AdminStudentsPage() {
                 <Alert tone="error">{rowError}</Alert>
               </div>
             )}
+            {certificate.error && (
+              <div className="mb-4">
+                <Alert tone="error">{certificate.error}</Alert>
+              </div>
+            )}
+            {certificate.success && (
+              <div className="mb-4">
+                <Alert tone="success">{certificate.success}</Alert>
+              </div>
+            )}
             {bulk.error && (
               <div className="mb-4">
                 <Alert tone="error">{bulk.error}</Alert>
@@ -556,18 +569,13 @@ export default function AdminStudentsPage() {
                                   />
                                 </td>
                                 <td className="px-4 py-3 text-ink-400">
-                                  {student.certificate_url ? (
-                                    <a
-                                      href={student.certificate_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="font-medium text-pine-800 hover:underline"
-                                    >
-                                      View
-                                    </a>
-                                  ) : (
-                                    "—"
-                                  )}
+                                  <CertificateCell
+                                    editing
+                                    student={student}
+                                    uploading={certificate.uploadingId === student.student_id}
+                                    onReplace={certificate.replace}
+                                    canReplace={canUpdate}
+                                  />
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
@@ -611,18 +619,12 @@ export default function AdminStudentsPage() {
                                 <td className="px-4 py-3 text-ink-700">{student.month_year_pass}</td>
                                 <td className="px-4 py-3 text-ink-700">{student.grade || "—"}</td>
                                 <td className="px-4 py-3">
-                                  {student.certificate_url ? (
-                                    <a
-                                      href={student.certificate_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="font-medium text-pine-800 hover:underline"
-                                    >
-                                      View
-                                    </a>
-                                  ) : (
-                                    <span className="text-ink-400">—</span>
-                                  )}
+                                  <CertificateCell
+                                    student={student}
+                                    uploading={certificate.uploadingId === student.student_id}
+                                    onReplace={certificate.replace}
+                                    canReplace={canUpdate}
+                                  />
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">

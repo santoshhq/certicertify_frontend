@@ -213,15 +213,16 @@ export async function updateStudentAsSuperAdmin(
   return data;
 }
 
+/** Replaces one specific student's certificate; the old file is deleted server-side. */
 export async function replaceStudentCertificateAsSuperAdmin(
-  rollNoCertificateNo: string,
+  studentId: string,
   certificate: File
 ) {
   const form = new FormData();
   form.append("certificate", certificate);
 
   const { data } = await api.patch<Student>(
-    `/superadmin/students/${encodeURIComponent(rollNoCertificateNo)}/certificate`,
+    `/superadmin/students/id/${encodeURIComponent(studentId)}/certificate`,
     form,
     { headers: { "Content-Type": "multipart/form-data" } }
   );

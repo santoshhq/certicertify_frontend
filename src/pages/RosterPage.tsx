@@ -18,10 +18,12 @@ import {
   listStudentsByInstitution,
   updateStudent,
   uploadStudents,
+  replaceStudentCertificate,
 } from "../lib/students";
 import type { StudentUpdatePayload } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
 import { UploadResults } from "../components/UploadResults";
+import { CertificateCell, useCertificateReplace } from "../components/CertificateCell";
 import {
   BulkUpdateBar,
   rowCheckboxClass,
@@ -99,6 +101,7 @@ export default function RosterPage() {
   const [addOpen, setAddOpen] = useState(false);
 
   const bulk = useBulkStudentUpdate(students, setStudents, updateStudent);
+  const certificate = useCertificateReplace(setStudents, replaceStudentCertificate);
 
   async function load() {
     if (!institutionName) return;
@@ -330,6 +333,16 @@ export default function RosterPage() {
             <Alert tone="error">{rowError}</Alert>
           </div>
         )}
+        {certificate.error && (
+          <div className="mb-4">
+            <Alert tone="error">{certificate.error}</Alert>
+          </div>
+        )}
+        {certificate.success && (
+          <div className="mb-4">
+            <Alert tone="success">{certificate.success}</Alert>
+          </div>
+        )}
         {bulk.error && (
           <div className="mb-4">
             <Alert tone="error">{bulk.error}</Alert>
@@ -449,18 +462,12 @@ export default function RosterPage() {
                               />
                             </td>
                             <td className="px-4 py-3 text-ink-400">
-                              {student.certificate_url ? (
-                                <a
-                                  href={student.certificate_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="font-medium text-pine-800 hover:underline"
-                                >
-                                  View
-                                </a>
-                              ) : (
-                                "—"
-                              )}
+                              <CertificateCell
+                                editing
+                                student={student}
+                                uploading={certificate.uploadingId === student.student_id}
+                                onReplace={certificate.replace}
+                              />
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
@@ -504,18 +511,11 @@ export default function RosterPage() {
                             <td className="px-4 py-3 text-ink-700">{student.month_year_pass}</td>
                             <td className="px-4 py-3 text-ink-700">{student.grade || "—"}</td>
                             <td className="px-4 py-3">
-                              {student.certificate_url ? (
-                                <a
-                                  href={student.certificate_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="font-medium text-pine-800 hover:underline"
-                                >
-                                  View
-                                </a>
-                              ) : (
-                                <span className="text-ink-400">—</span>
-                              )}
+                              <CertificateCell
+                                student={student}
+                                uploading={certificate.uploadingId === student.student_id}
+                                onReplace={certificate.replace}
+                              />
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">

@@ -351,6 +351,7 @@ export default function SuperAdminAdminsPage() {
               label="Login ID"
               name="admin_userId"
               hint="Exactly 8 characters"
+              minLength={8}
               maxLength={8}
               required
               value={createForm.admin_userId}
@@ -536,6 +537,7 @@ export default function SuperAdminAdminsPage() {
                                     label="Login ID"
                                     name="admin_userId"
                                     hint="Exactly 8 characters"
+                                    minLength={8}
                                     maxLength={8}
                                     required
                                     value={editForm.admin_userId}

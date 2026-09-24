@@ -185,6 +185,7 @@ export function AddSingleStudentForm({
           <Field
             label="Surname / last name"
             name="surname_lastName"
+            required
             value={details.surname_lastName}
             onChange={(e) => update("surname_lastName", e.target.value)}
           />
@@ -224,6 +225,7 @@ export function AddSingleStudentForm({
           <Field
             label="Grade"
             name="grade"
+            required
             value={details.grade}
             onChange={(e) => update("grade", e.target.value)}
           />

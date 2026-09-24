@@ -24,6 +24,7 @@ import {
 import type { StudentUpdatePayload } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
 import { UploadResults } from "../components/UploadResults";
+import { CertificateCell, useCertificateReplace } from "../components/CertificateCell";
 import {
   BulkUpdateBar,
   rowCheckboxClass,
@@ -98,9 +99,7 @@ export default function SuperAdminStudentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<EditableField, string> | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadingCertificateId, setUploadingCertificateId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
-  const [certificateSuccess, setCertificateSuccess] = useState<string | null>(null);
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -108,6 +107,7 @@ export default function SuperAdminStudentsPage() {
   const [addOpen, setAddOpen] = useState(false);
 
   const bulk = useBulkStudentUpdate(students, setStudents, updateStudentAsSuperAdmin);
+  const certificate = useCertificateReplace(setStudents, replaceStudentCertificateAsSuperAdmin);
 
   const selectedInstitution = institutions.find((i) => i.institution_id === institutionId);
 
@@ -260,44 +260,6 @@ export default function SuperAdminStudentsPage() {
       setDeletingId(null);
       // Always close the dialog so a failure surfaces in the row error banner.
       setConfirmingDeleteId(null);
-    }
-  }
-
-  async function replaceCertificate(student: Student, file: File) {
-    setCertificateSuccess(null);
-    if (!isCertificateFile(file)) {
-      setRowError("Certificate must be a PDF or JPG file.");
-      return;
-    }
-    const fileNameWithoutExtension = file.name.replace(/\.[^.]+$/, "");
-    if (
-      fileNameWithoutExtension.trim().toLowerCase() !==
-      student.roll_no.trim().toLowerCase()
-    ) {
-      setRowError(
-        `Certificate filename must match roll number ${student.roll_no}.`
-      );
-      return;
-    }
-
-    setUploadingCertificateId(student.student_id);
-    setRowError(null);
-    try {
-      const updated = await replaceStudentCertificateAsSuperAdmin(
-        student.roll_no,
-        file
-      );
-      setStudents((prev) =>
-        prev.map((s) => (s.student_id === student.student_id ? updated : s))
-      );
-      setCertificateSuccess(
-        `Certificate replaced successfully for ${student.roll_no}.`
-      );
-    } catch (err) {
-      setCertificateSuccess(null);
-      setRowError(extractErrorMessage(err, "Couldn't replace the certificate."));
-    } finally {
-      setUploadingCertificateId(null);
     }
   }
 
@@ -461,9 +423,14 @@ export default function SuperAdminStudentsPage() {
                 <Alert tone="error">{rowError}</Alert>
               </div>
             )}
-            {certificateSuccess && (
+            {certificate.error && (
               <div className="mb-4">
-                <Alert tone="success">{certificateSuccess}</Alert>
+                <Alert tone="error">{certificate.error}</Alert>
+              </div>
+            )}
+            {certificate.success && (
+              <div className="mb-4">
+                <Alert tone="success">{certificate.success}</Alert>
               </div>
             )}
             {bulk.error && (
@@ -585,29 +552,12 @@ export default function SuperAdminStudentsPage() {
                                   />
                                 </td>
                                 <td className="px-4 py-3 text-ink-400">
-                                  {student.certificate_url ? (
-                                    <div className="flex items-center gap-2">
-                                      <a
-                                        href={student.certificate_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="font-medium text-pine-800 hover:underline"
-                                      >
-                                        View
-                                      </a>
-                                      <CertificateUploadButton
-                                        student={student}
-                                        uploading={uploadingCertificateId === student.student_id}
-                                        onUpload={replaceCertificate}
-                                      />
-                                    </div>
-                                  ) : (
-                                    <CertificateUploadButton
-                                      student={student}
-                                      uploading={uploadingCertificateId === student.student_id}
-                                      onUpload={replaceCertificate}
-                                    />
-                                  )}
+                                  <CertificateCell
+                                    editing
+                                    student={student}
+                                    uploading={certificate.uploadingId === student.student_id}
+                                    onReplace={certificate.replace}
+                                  />
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
@@ -651,29 +601,11 @@ export default function SuperAdminStudentsPage() {
                                 <td className="px-4 py-3 text-ink-700">{student.month_year_pass}</td>
                                 <td className="px-4 py-3 text-ink-700">{student.grade || "—"}</td>
                                 <td className="px-4 py-3">
-                                  {student.certificate_url ? (
-                                    <div className="flex items-center gap-2">
-                                      <a
-                                        href={student.certificate_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="font-medium text-pine-800 hover:underline"
-                                      >
-                                        View
-                                      </a>
-                                      <CertificateUploadButton
-                                        student={student}
-                                        uploading={uploadingCertificateId === student.student_id}
-                                        onUpload={replaceCertificate}
-                                      />
-                                    </div>
-                                  ) : (
-                                    <CertificateUploadButton
-                                      student={student}
-                                      uploading={uploadingCertificateId === student.student_id}
-                                      onUpload={replaceCertificate}
-                                    />
-                                  )}
+                                  <CertificateCell
+                                    student={student}
+                                    uploading={certificate.uploadingId === student.student_id}
+                                    onReplace={certificate.replace}
+                                  />
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
@@ -732,41 +664,6 @@ export default function SuperAdminStudentsPage() {
         </>
       )}
     </div>
-  );
-}
-
-function CertificateUploadButton({
-  student,
-  uploading,
-  onUpload,
-}: {
-  student: Student;
-  uploading: boolean;
-  onUpload: (student: Student, file: File) => void;
-}) {
-  const inputId = `certificate-upload-${student.student_id}`;
-
-  return (
-    <label
-      htmlFor={inputId}
-      className={`cursor-pointer text-xs font-medium text-pine-800 hover:underline ${
-        uploading ? "pointer-events-none opacity-50" : ""
-      }`}
-    >
-      {uploading ? "Uploading..." : student.certificate_url ? "Replace" : "Upload"}
-      <input
-        id={inputId}
-        type="file"
-        accept=".pdf,.jpg,.jpeg"
-        className="sr-only"
-        disabled={uploading}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) onUpload(student, file);
-          event.target.value = "";
-        }}
-      />
-    </label>
   );
 }
 

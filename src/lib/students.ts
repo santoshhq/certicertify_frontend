@@ -135,6 +135,19 @@ export async function updateStudent(
   return data;
 }
 
+/** Institution replaces one of its own students' certificates; the old file is deleted server-side. */
+export async function replaceStudentCertificate(studentId: string, certificate: File) {
+  const form = new FormData();
+  form.append("certificate", certificate);
+
+  const { data } = await api.patch<Student>(
+    `/institutions/students/id/${encodeURIComponent(studentId)}/certificate`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return data;
+}
+
 export async function deleteStudent(rollNoCertificateNo: string) {
   await api.delete(`/students/${encodeURIComponent(rollNoCertificateNo)}`);
 }
