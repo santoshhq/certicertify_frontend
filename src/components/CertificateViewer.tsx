@@ -53,13 +53,10 @@ export function CertificateViewer({ url, rollNo }: { url: string; rollNo: string
         ))}
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-pine-950/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white"
-      >
-        <Logo size={16} />
-        Verified by CertiCertify
-      </div>
+      <Logo
+        size={28}
+        className="pointer-events-none absolute bottom-3 right-3 shadow-sm ring-1 ring-line"
+      />
     </div>
   );
 }

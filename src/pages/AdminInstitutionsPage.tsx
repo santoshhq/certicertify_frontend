@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Search, Pencil, Trash2, X } from "lucide-react";
+import { Search, Pencil, Trash2, X, Lock } from "lucide-react";
 import {
   getAllInstitutionsAsAdmin,
   updateInstitutionAsAdmin,
@@ -35,6 +35,15 @@ type EditForm = {
   password: string;
 };
 
+// Identity fields the institution itself can't change; only full-access admins may edit them.
+const LOCKED_FIELDS: (keyof EditForm)[] = [
+  "institution_name",
+  "institutional_code",
+  "gst_number",
+  "email_id",
+  "mobile_no",
+];
+
 function toEditForm(institution: Institution): EditForm {
   return {
     name: institution.name,
@@ -57,6 +66,7 @@ export default function AdminInstitutionsPage() {
   const canDelete = can("institutions_delete");
   // Approving / suspending an institution needs full control, not just update permission.
   const canChangeStatus = me?.access_level === "full";
+  const canEditLockedFields = me?.access_level === "full";
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +141,7 @@ export default function AdminInstitutionsPage() {
         if (editForm.password) payload.password = editForm.password;
         return;
       }
+      if (!canEditLockedFields && LOCKED_FIELDS.includes(key)) return;
       if (editForm[key] !== original[key]) {
         (payload as Record<string, string | null>)[key] = editForm[key] || null;
       }
@@ -328,6 +339,7 @@ export default function AdminInstitutionsPage() {
                               <EditInstitutionForm
                                 form={editForm}
                                 saving={saving}
+                                lockIdentity={!canEditLockedFields}
                                 onChange={updateField}
                                 onChangeCountry={updateCountry}
                                 onCancel={cancelEdit}
@@ -362,6 +374,7 @@ export default function AdminInstitutionsPage() {
 function EditInstitutionForm({
   form,
   saving,
+  lockIdentity,
   onChange,
   onChangeCountry,
   onCancel,
@@ -369,6 +382,7 @@ function EditInstitutionForm({
 }: {
   form: EditForm;
   saving: boolean;
+  lockIdentity: boolean;
   onChange: <K extends keyof EditForm>(key: K, value: string) => void;
   onChangeCountry: (country: string) => void;
   onCancel: () => void;
@@ -377,6 +391,13 @@ function EditInstitutionForm({
   const states = statesFor(form.country);
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4 max-w-3xl">
+      {lockIdentity && (
+        <p className="flex items-center gap-2 text-xs text-ink-700">
+          <Lock size={13} className="shrink-0 text-pine-700" />
+          Institution name, code, GST number, email and mobile are locked. Only admins with full
+          access can change them.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Institution name"
@@ -384,6 +405,7 @@ function EditInstitutionForm({
           required
           value={form.institution_name}
           onChange={(e) => onChange("institution_name", e.target.value)}
+          locked={lockIdentity}
         />
         <Field
           label="Contact name"
@@ -400,6 +422,7 @@ function EditInstitutionForm({
           required
           value={form.institutional_code}
           onChange={(e) => onChange("institutional_code", e.target.value)}
+          locked={lockIdentity}
         />
         <Field
           label="GST number"
@@ -407,6 +430,7 @@ function EditInstitutionForm({
           required
           value={form.gst_number}
           onChange={(e) => onChange("gst_number", e.target.value.toUpperCase())}
+          locked={lockIdentity}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -417,12 +441,14 @@ function EditInstitutionForm({
           required
           value={form.email_id}
           onChange={(e) => onChange("email_id", e.target.value)}
+          locked={lockIdentity}
         />
         <Field
           label="Mobile number"
           name="mobile_no"
           value={form.mobile_no}
           onChange={(e) => onChange("mobile_no", e.target.value)}
+          locked={lockIdentity}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

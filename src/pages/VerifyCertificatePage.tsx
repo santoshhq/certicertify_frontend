@@ -337,13 +337,13 @@ export default function VerifyCertificatePage() {
                 </span>
                 <div>
                   <p className="font-display text-lg font-bold leading-tight text-pine-950">
-                    Verified by CertiCertify
+                    CertiCertify
                   </p>
 
                 </div>
               </div>
               <p className="text-xs text-ink-400">
-                Certificate ID: <span className="font-mono font-semibold text-ink-700">{certificateId}</span>
+                CertiCertify ID: <span className="font-mono font-semibold text-ink-700">{certificateId}</span>
               </p>
             </div>
 
@@ -356,7 +356,7 @@ export default function VerifyCertificatePage() {
 
                 <dl className="mt-8 grid gap-x-8 gap-y-6 border-t border-line pt-6 sm:grid-cols-2">
                   <Detail label="Institution" value={student.institution_name} wide />
-                  <Detail label="Certificate ID" value={certificateId} mono />
+                  <Detail label="CertiCertify ID" value={certificateId} mono />
                   <Detail label="Certificate number" value={student.certificate_no} mono />
                   <Detail label="Roll number" value={student.roll_no} mono />
                   <Detail label="Batch year" value={student.batch_year} />

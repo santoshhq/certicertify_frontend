@@ -3,6 +3,9 @@ import type { Dispatch, SetStateAction } from "react";
 import { Users } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Field } from "./ui/Field";
+import { currentIndianYear } from "./BatchYearField";
+import { batchYearError, maxPassOut, passOutError, toStoredPassOut } from "../lib/passOut";
+import type { PassOutPrecision } from "../lib/passOut";
 import type { StudentUpdatePayload } from "../lib/students";
 import type { Student } from "../types";
 
@@ -23,6 +26,7 @@ export function useBulkStudentUpdate(
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchYear, setBatchYear] = useState("");
   const [passYear, setPassYear] = useState("");
+  const [passOutPrecision, setPassOutPrecision] = useState<PassOutPrecision>("month");
   const [course, setCourse] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +55,11 @@ export function useBulkStudentUpdate(
     return visible.length > 0 && visible.every((s) => selectedIds.has(s.student_id));
   }
 
+  function togglePassOutPrecision() {
+    setPassOutPrecision((p) => (p === "month" ? "date" : "month"));
+    setPassYear("");
+  }
+
   function clear() {
     setSelectedIds(new Set());
     setBatchYear("");
@@ -68,9 +77,15 @@ export function useBulkStudentUpdate(
       setError("Enter a batch year, pass-out year, and/or course to apply.");
       return;
     }
+    const invalid =
+      (nextBatch && batchYearError(nextBatch)) || (nextPass && passOutError(nextPass));
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     const payload: StudentUpdatePayload = {};
     if (nextBatch) payload.batch_year = nextBatch;
-    if (nextPass) payload.month_year_pass = nextPass;
+    if (nextPass) payload.month_year_pass = toStoredPassOut(nextPass, passOutPrecision);
     if (nextCourse) payload.course_or_Acadamic = nextCourse;
 
     const targets = students.filter((s) => selectedIds.has(s.student_id));
@@ -116,6 +131,8 @@ export function useBulkStudentUpdate(
     setBatchYear,
     passYear,
     setPassYear,
+    passOutPrecision,
+    togglePassOutPrecision,
     course,
     setCourse,
     saving,
@@ -142,19 +159,29 @@ export function BulkUpdateBar({
         <Field
           label="Set batch year"
           name="bulk_batch_year"
-          placeholder="e.g. 2025"
+          placeholder={`e.g. ${currentIndianYear()}`}
+          inputMode="numeric"
+          maxLength={4}
           value={bulk.batchYear}
-          onChange={(e) => bulk.setBatchYear(e.target.value)}
+          onChange={(e) => bulk.setBatchYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
         />
       </div>
-      <div className="w-48">
+      <div className="w-56">
         <Field
-          label="Set pass-out (month/year)"
+          label={bulk.passOutPrecision === "month" ? "Set pass-out month & year" : "Set pass-out date"}
           name="bulk_pass_year"
-          placeholder="e.g. May 2025"
+          type={bulk.passOutPrecision === "month" ? "month" : "date"}
+          max={maxPassOut(bulk.passOutPrecision)}
           value={bulk.passYear}
           onChange={(e) => bulk.setPassYear(e.target.value)}
         />
+        <button
+          type="button"
+          onClick={bulk.togglePassOutPrecision}
+          className="mt-1.5 text-xs font-medium text-pine-800 underline-offset-2 hover:underline"
+        >
+          {bulk.passOutPrecision === "month" ? "Use exact date instead" : "Use month & year instead"}
+        </button>
       </div>
       <div className="w-56">
         <Field

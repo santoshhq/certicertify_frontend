@@ -6,6 +6,8 @@ import { Alert } from "./ui/Alert";
 import { Field } from "./ui/Field";
 import { DropZone, isCertificateFile } from "./ui/DropZone";
 import { extractErrorMessage } from "../lib/api";
+import { batchYearError, maxPassOut, toStoredPassOut } from "../lib/passOut";
+import type { PassOutPrecision } from "../lib/passOut";
 import type { SingleStudentPayload } from "../lib/students";
 import type { Student } from "../types";
 
@@ -28,29 +30,6 @@ function normalizeKey(value: string) {
 
 function fileStem(name: string) {
   return name.replace(/\.[^.]+$/, "");
-}
-
-/** Today's date in Indian Standard Time as YYYY-MM-DD, for the pickers' upper bound. */
-function todayISO() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-type PassOutPrecision = "month" | "date";
-
-/**
- * Picker value -> stored text. Month picker gives YYYY-MM -> "MM-YYYY";
- * date picker gives YYYY-MM-DD -> "DD-MM-YYYY". Both keep the 4-digit year
- * the backend extracts for pass-out year filters.
- */
-function toStoredPassOut(value: string, precision: PassOutPrecision) {
-  const [y, m, d] = value.split("-");
-  if (!y || !m) return value;
-  return precision === "date" && d ? `${d}-${m}-${y}` : `${m}-${y}`;
 }
 
 export function AddSingleStudentForm({
@@ -103,13 +82,12 @@ export function AddSingleStudentForm({
       setError("Choose the target institution.");
       return;
     }
-    if (!batchYear.trim()) {
-      setError("Enter a batch year.");
+    const batchInvalid = batchYear.trim() ? batchYearError(batchYear) : "Enter a batch year.";
+    if (batchInvalid) {
+      setError(batchInvalid);
       return;
     }
-    const today = todayISO();
-    const maxForPrecision = passOutPrecision === "month" ? today.slice(0, 7) : today;
-    if (details.month_year_pass && details.month_year_pass > maxForPrecision) {
+    if (details.month_year_pass && details.month_year_pass > maxPassOut(passOutPrecision)) {
       setError("Pass-out date can't be in the future.");
       return;
     }
@@ -203,7 +181,7 @@ export function AddSingleStudentForm({
               label={passOutPrecision === "month" ? "Pass-out month & year" : "Pass-out date"}
               name="month_year_pass"
               type={passOutPrecision === "month" ? "month" : "date"}
-              max={passOutPrecision === "month" ? todayISO().slice(0, 7) : todayISO()}
+              max={maxPassOut(passOutPrecision)}
               required
               value={details.month_year_pass}
               onChange={(e) => update("month_year_pass", e.target.value)}

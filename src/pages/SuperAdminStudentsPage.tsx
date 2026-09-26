@@ -23,6 +23,7 @@ import {
 } from "../lib/superadmin";
 import type { StudentUpdatePayload } from "../lib/students";
 import { extractErrorMessage } from "../lib/api";
+import { batchYearError, passOutError } from "../lib/passOut";
 import { UploadResults } from "../components/UploadResults";
 import { CertificateCell, useCertificateReplace } from "../components/CertificateCell";
 import {
@@ -221,6 +222,14 @@ export default function SuperAdminStudentsPage() {
     if (!editForm) return;
     if (!editForm.roll_no.trim()) {
       setRowError("Roll no. can't be empty.");
+      return;
+    }
+    // Only check changed values so older rows with legacy text can still be edited.
+    const dateInvalid =
+      (editForm.batch_year !== (student.batch_year ?? "") && batchYearError(editForm.batch_year)) ||
+      (editForm.month_year_pass !== student.month_year_pass && passOutError(editForm.month_year_pass));
+    if (dateInvalid) {
+      setRowError(dateInvalid);
       return;
     }
     const payload: StudentUpdatePayload = {};
@@ -532,12 +541,17 @@ export default function SuperAdminStudentsPage() {
                                   <input
                                     className={cellInputClass()}
                                     value={editForm.batch_year}
-                                    onChange={(e) => updateEditField("batch_year", e.target.value)}
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    onChange={(e) =>
+                                      updateEditField("batch_year", e.target.value.replace(/\D/g, "").slice(0, 4))
+                                    }
                                   />
                                 </td>
                                 <td className="px-4 py-2">
                                   <input
                                     className={cellInputClass()}
+                                    placeholder="MM-YYYY"
                                     value={editForm.month_year_pass}
                                     onChange={(e) =>
                                       updateEditField("month_year_pass", e.target.value)
@@ -706,8 +720,9 @@ function AddToBatchPanel({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!batchYear) {
-      setError("Choose or enter a batch year.");
+    const batchInvalid = batchYear ? batchYearError(batchYear) : "Choose or enter a batch year.";
+    if (batchInvalid) {
+      setError(batchInvalid);
       return;
     }
     if (!excelFile) {
@@ -783,7 +798,9 @@ function AddToBatchPanel({
             name="custom_batch_year"
             placeholder="e.g. 2025"
             value={customBatch}
-            onChange={(e) => setCustomBatch(e.target.value)}
+            inputMode="numeric"
+            maxLength={4}
+            onChange={(e) => setCustomBatch(e.target.value.replace(/\D/g, "").slice(0, 4))}
             autoFocus
             required
           />

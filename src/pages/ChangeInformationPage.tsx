@@ -14,8 +14,6 @@ import type { RegisterPayload } from "../types";
 
 type EditableFields = Omit<RegisterPayload, "password">;
 
-const lockedInputClass = "cursor-not-allowed bg-mint-100/70 text-ink-400";
-
 export default function ChangeInformationPage() {
   const { institution, institutionId, logout, refreshInstitution } = useAuth();
   const navigate = useNavigate();
@@ -119,26 +117,20 @@ export default function ChangeInformationPage() {
             label="Institution name"
             name="institution_name"
             value={form.institution_name}
-            readOnly
-            disabled
-            className={lockedInputClass}
+            locked
           />
           <div className="grid grid-cols-2 gap-4">
             <Field
               label="Institutional code"
               name="institutional_code"
               value={form.institutional_code}
-              readOnly
-              disabled
-              className={lockedInputClass}
+              locked
             />
             <Field
               label="GST number"
               name="gst_number"
               value={form.gst_number}
-              readOnly
-              disabled
-              className={lockedInputClass}
+              locked
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -147,17 +139,13 @@ export default function ChangeInformationPage() {
               type="email"
               name="email_id"
               value={form.email_id}
-              readOnly
-              disabled
-              className={lockedInputClass}
+              locked
             />
             <Field
               label="Mobile number"
               name="mobile_no"
               value={form.mobile_no ?? ""}
-              readOnly
-              disabled
-              className={lockedInputClass}
+              locked
             />
           </div>
         </div>
